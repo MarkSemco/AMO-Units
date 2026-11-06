@@ -1,0 +1,17 @@
+{
+  "name": "AMO Units — Physics & RF Laboratory Converter",
+  "short_name": "AMO Units",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0F17",
+  "theme_color": "#0B0F17",
+  "description": "High-precision offline unit converter and error propagation equation generator for AMO physics and RF laboratories.",
+  "icons": [
+    {
+      "src": "/icons/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

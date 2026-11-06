@@ -1,0 +1,206 @@
+import { TransitionPreset } from '../types/presets';
+
+export const DEFAULT_PRESETS: TransitionPreset[] = [
+  // --- Molecular AMO Systems ---
+  {
+    id: 'mol-alcl-main',
+    name: 'AlCl (Aluminum Monochloride)',
+    species: 'AlCl',
+    category: 'molecular',
+    transitionName: 'A¹Π(v\'=0) ← X¹Σ⁺(v\'\'=0)',
+    wavelengthNm: 261.5,
+    linewidthMHz: 25.0,
+    saturationIntensityMwPerCm2: 232.0,
+    dipoleMomentDebye: 1.68,
+    repumpWavelengthsNm: [261.8, 262.2],
+    laboratory: 'University of Connecticut (McCarron) & UC Riverside (Hemmerling)',
+    citation: 'J. R. Daniel et al., Phys. Rev. A 108, 062821 (2023); L.-R. Liu et al., Phys. Rev. A 111, 062810 (2025)',
+    doi: '10.1103/PhysRevA.108.062821',
+    description: 'Main deep-UV optical cycling transition for AlCl molecules with large photon recoil velocity. Dipole moment measured via Stark shift spectroscopy (μ = 1.679 D).'
+  },
+  {
+    id: 'mol-caf-b-x',
+    name: 'CaF (Calcium Monofluoride)',
+    species: 'CaF',
+    category: 'molecular',
+    transitionName: 'B²Σ⁺(v\'=0) ← X²Σ⁺(v\'\'=0)',
+    wavelengthNm: 531.0,
+    linewidthMHz: 6.3,
+    saturationIntensityMwPerCm2: 4.4,
+    dipoleMomentDebye: 3.07,
+    repumpWavelengthsNm: [530.8],
+    laboratory: 'Imperial College London & Harvard University',
+    citation: 'B. Hemmerling et al., J. Phys. B: At. Mol. Opt. Phys. 49, 174001 (2016); T. E. Wall et al., Phys. Rev. A 78, 062509 (2008)',
+    doi: '10.1088/0953-4075/49/17/174001',
+    description: 'Green cycling transition used for molecular beam slowing, rapid transverse deflection, and sensitive detection.'
+  },
+  {
+    id: 'mol-caf-a-x',
+    name: 'CaF (Calcium Monofluoride)',
+    species: 'CaF',
+    category: 'molecular',
+    transitionName: 'A²Π₁/₂(v\'=0) ← X²Σ⁺(v\'\'=0)',
+    wavelengthNm: 606.3,
+    linewidthMHz: 8.3,
+    saturationIntensityMwPerCm2: 4.9,
+    dipoleMomentDebye: 3.07,
+    repumpWavelengthsNm: [628.6, 628.1],
+    laboratory: 'Imperial College London (Tarbutt) & Harvard University (Doyle)',
+    citation: 'S. Truppe et al., Nature Physics 13, 1173–1179 (2017); L. W. Cheuk et al., Phys. Rev. Lett. 116, 143001 (2016)',
+    doi: '10.1038/nphys4241',
+    description: 'Orange cycling transition for 3D magneto-optical trapping (MOT) and sub-Doppler RF/gray molasses cooling of CaF.'
+  },
+  {
+    id: 'mol-alf-main',
+    name: 'AlF (Aluminum Monofluoride)',
+    species: 'AlF',
+    category: 'molecular',
+    transitionName: 'A¹Π(v\'=0) ← X¹Σ⁺(v\'\'=0)',
+    wavelengthNm: 227.5,
+    linewidthMHz: 84.0,
+    saturationIntensityMwPerCm2: 930.0,
+    dipoleMomentDebye: 1.515,
+    laboratory: 'Fritz Haber Institute of the Max Planck Society (Berlin)',
+    citation: 'S. Truppe, S. Marx, S. Kray, M. Doppelbauer, S. Hofsäss et al., Phys. Rev. A 100, 052513 (2019)',
+    doi: '10.1103/PhysRevA.100.052513',
+    description: 'Deep-UV cycling transition with exceptionally rapid photon scattering rate (τ = 1.90 ns, Γ/2π = 84 MHz) and high saturation intensity (0.93 W/cm²).'
+  },
+
+  // --- Alkali Atoms ---
+  {
+    id: 'atom-rb87-d2',
+    name: 'Rubidium-87 (⁸⁷Rb)',
+    species: '⁸⁷Rb',
+    category: 'alkali',
+    transitionName: 'D₂ Line (5²S₁/₂ → 5²P₃/₂)',
+    wavelengthNm: 780.241,
+    linewidthMHz: 6.067,
+    saturationIntensityMwPerCm2: 1.669,
+    dipoleMomentDebye: 10.745,
+    laboratory: 'NIST / University of Oregon (Steck)',
+    citation: 'D. A. Steck, "Rubidium 87 D Line Data", available online at steck.us/alkalidata (revision 2.2.3, 2023)',
+    doi: 'https://steck.us/alkalidata/rubidium87numbers.pdf',
+    description: 'Canonical laser cooling and BEC transition. Cycling transition Isat = 1.669 mW/cm² (σ±). Dipole matrix element ⟨J=1/2||er||J\'=3/2⟩ = 3.584×10⁻²⁹ C·m = 10.745 D.'
+  },
+  {
+    id: 'atom-rb87-d1',
+    name: 'Rubidium-87 (⁸⁷Rb)',
+    species: '⁸⁷Rb',
+    category: 'alkali',
+    transitionName: 'D₁ Line (5²S₁/₂ → 5²P₁/₂)',
+    wavelengthNm: 794.979,
+    linewidthMHz: 5.750,
+    saturationIntensityMwPerCm2: 4.484,
+    dipoleMomentDebye: 7.606,
+    laboratory: 'NIST / University of Oregon (Steck)',
+    citation: 'D. A. Steck, "Rubidium 87 D Line Data", available online at steck.us/alkalidata (revision 2.2.3, 2023)',
+    doi: 'https://steck.us/alkalidata/rubidium87numbers.pdf',
+    description: 'D1 optical pumping and gray-molasses sub-Doppler cooling line. Dipole matrix element ⟨J=1/2||er||J\'=1/2⟩ = 2.537×10⁻²⁹ C·m = 7.606 D.'
+  },
+  {
+    id: 'atom-rb85-d2',
+    name: 'Rubidium-85 (⁸⁵Rb)',
+    species: '⁸⁵Rb',
+    category: 'alkali',
+    transitionName: 'D₂ Line (5²S₁/₂ → 5²P₃/₂)',
+    wavelengthNm: 780.241,
+    linewidthMHz: 6.067,
+    saturationIntensityMwPerCm2: 1.669,
+    dipoleMomentDebye: 10.745,
+    laboratory: 'NIST / University of Oregon (Steck)',
+    citation: 'D. A. Steck, "Rubidium 85 D Line Data", available online at steck.us/alkalidata (revision 2.2.2, 2021)',
+    doi: 'https://steck.us/alkalidata/rubidium85numbers.pdf',
+    description: 'Main laser cooling transition for the naturally abundant 85Rb isotope (72.17% abundance). Cycling transition Isat = 1.669 mW/cm².'
+  },
+  {
+    id: 'atom-rb85-d1',
+    name: 'Rubidium-85 (⁸⁵Rb)',
+    species: '⁸⁵Rb',
+    category: 'alkali',
+    transitionName: 'D₁ Line (5²S₁/₂ → 5²P₁/₂)',
+    wavelengthNm: 794.979,
+    linewidthMHz: 5.750,
+    saturationIntensityMwPerCm2: 4.484,
+    dipoleMomentDebye: 7.606,
+    laboratory: 'NIST / University of Oregon (Steck)',
+    citation: 'D. A. Steck, "Rubidium 85 D Line Data", available online at steck.us/alkalidata (revision 2.2.2, 2021)',
+    doi: 'https://steck.us/alkalidata/rubidium85numbers.pdf',
+    description: 'D1 optical pumping and spectroscopy line for 85Rb.'
+  },
+  {
+    id: 'atom-cs133-d2',
+    name: 'Cesium-133 (¹³³Cs)',
+    species: '¹³³Cs',
+    category: 'alkali',
+    transitionName: 'D₂ Line (6²S₁/₂ → 6²P₃/₂)',
+    wavelengthNm: 852.347,
+    linewidthMHz: 5.234,
+    saturationIntensityMwPerCm2: 1.102,
+    dipoleMomentDebye: 11.956,
+    laboratory: 'NIST / BIPM SI Primary Standard',
+    citation: 'D. A. Steck, "Cesium D Line Data", available online at steck.us/alkalidata (revision 2.2.2, 2021)',
+    doi: 'https://steck.us/alkalidata/cesiumnumbers.pdf',
+    description: 'SI base second reference species D2 laser cooling line. Cycling transition Isat = 1.102 mW/cm² (σ±). Dipole matrix element = 3.988×10⁻²⁹ C·m = 11.956 D.'
+  },
+  {
+    id: 'atom-cs133-d1',
+    name: 'Cesium-133 (¹³³Cs)',
+    species: '¹³³Cs',
+    category: 'alkali',
+    transitionName: 'D₁ Line (6²S₁/₂ → 6²P₁/₂)',
+    wavelengthNm: 894.593,
+    linewidthMHz: 4.575,
+    saturationIntensityMwPerCm2: 2.498,
+    dipoleMomentDebye: 8.343,
+    laboratory: 'NIST / PTB (Braunschweig)',
+    citation: 'D. A. Steck, "Cesium D Line Data", available online at steck.us/alkalidata (revision 2.2.2, 2021)',
+    doi: 'https://steck.us/alkalidata/cesiumnumbers.pdf',
+    description: 'D1 optical pumping transition for cesium atomic fountain clocks and magnetometers. Dipole matrix element = 2.783×10⁻²⁹ C·m = 8.343 D.'
+  },
+
+  // --- Alkaline-Earth Clocks ---
+  {
+    id: 'atom-sr88-blue',
+    name: 'Strontium-88 (⁸⁸Sr)',
+    species: '⁸⁸Sr',
+    category: 'alkaline-earth',
+    transitionName: 'Broad Blue Singlet (¹S₀ → ¹P₁)',
+    wavelengthNm: 460.862,
+    linewidthMHz: 30.5,
+    saturationIntensityMwPerCm2: 40.3,
+    dipoleMomentDebye: 13.34,
+    laboratory: 'NIST / JILA (Boulder) & PTB',
+    citation: 'J. E. Sansonetti and G. Nave, J. Phys. Chem. Ref. Data 39, 033103 (2010); A. D. Ludlow et al., Rev. Mod. Phys. 87, 637 (2015)',
+    doi: '10.1063/1.3449176',
+    description: 'First-stage blue MOT and Zeeman slowing transition for Strontium. Reduced matrix element ⟨¹S₀||er||¹P₁⟩ = 5.248 e·a₀ = 13.34 D.'
+  },
+  {
+    id: 'atom-sr88-red',
+    name: 'Strontium-88 (⁸⁸Sr)',
+    species: '⁸⁸Sr',
+    category: 'alkaline-earth',
+    transitionName: 'Narrow Red Triplet Intercombination (¹S₀ → ³P₁)',
+    wavelengthNm: 689.449,
+    linewidthMHz: 0.0074, // 7.4 kHz
+    saturationIntensityMwPerCm2: 0.003, // 3.0 uW/cm^2
+    dipoleMomentDebye: 0.05,
+    laboratory: 'University of Tokyo (Katori) & JILA (Ye)',
+    citation: 'T. Ido, Y. Isoya, and H. Katori, Phys. Rev. A 61, 061403(R) (2000); H. Katori et al., Phys. Rev. Lett. 82, 1116 (1999)',
+    doi: '10.1103/PhysRevA.61.061403',
+    description: 'Second-stage narrow red MOT transition achieving microkelvin Doppler cooling temperatures (T_D = 179 nK).'
+  },
+  {
+    id: 'atom-sr87-clock',
+    name: 'Strontium-87 (⁸⁷Sr)',
+    species: '⁸⁷Sr',
+    category: 'alkaline-earth',
+    transitionName: 'Ultra-Narrow Optical Lattice Clock (¹S₀ → ³P₀)',
+    wavelengthNm: 698.446,
+    linewidthMHz: 0.0000000012, // 1.2 mHz natural linewidth
+    saturationIntensityMwPerCm2: 0.0000000004, // 4e-10 mW/cm^2 (4e-13 W/cm^2)
+    laboratory: 'JILA / NIST (Boulder) & BIPM Frequency Standard',
+    citation: 'M. M. Boyd, A. D. Ludlow, S. Blatt, J. Ye et al., Science 314, 1430 (2006); A. D. Ludlow et al., Rev. Mod. Phys. 87, 637 (2015)',
+    doi: '10.1126/science.1133732',
+    description: 'Ultra-narrow optical frequency standard transition at the magic wavelength lattice (813.4 nm). CIPM recommended representation of the second.'
+  }
+];

@@ -1,0 +1,264 @@
+@import './tokens.css';
+@import 'katex/dist/katex.min.css';
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+}
+
+html, body {
+  height: 100%;
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-size: 1rem;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Scrollbar customization */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-base);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Button & Input resets */
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+button {
+  cursor: pointer;
+  user-select: none;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Monospace text */
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* KaTeX theme overrides */
+.katex-display {
+  margin: 0.5em 0 !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+}
+
+.katex {
+  font-size: 1.15em !important;
+  color: var(--color-text-primary) !important;
+}
+
+/* Glass & Glow utilities */
+.glass-panel {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.glass-panel:hover {
+  border-color: var(--color-border-strong);
+}
+
+/* Keyframes */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes toastSlide {
+  from { opacity: 0; transform: translate(-50%, 20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 200ms ease-out forwards;
+}
+
+/* Responsive container */
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding: 0 var(--space-lg);
+  }
+}
+
+/* Card collapse button styling */
+.card-chevron-button {
+  background: transparent;
+  border: none;
+  padding: 6px;
+  min-width: 28px;
+  min-height: 28px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.card-chevron-button:hover {
+  background-color: var(--color-bg-surface-elevated);
+  color: var(--color-text-primary);
+}
+
+.card-chevron-button:focus-visible {
+  outline: 2px solid var(--color-laser);
+  outline-offset: 1px;
+}
+
+/* Dropdown menu items */
+.dropdown-menu-item {
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.dropdown-menu-item:hover {
+  background-color: var(--color-bg-surface) !important;
+}
+
+/* Toggle group buttons */
+.amo-toggle-group-button {
+  transition: all var(--transition-fast);
+}
+
+/* Polarization text box hover state */
+.polarization-input:hover:not(:focus) {
+  border-color: var(--color-border-strong) !important;
+}
+
+@media (max-width: 640px) {
+  .header-label-hide {
+    display: none !important;
+  }
+}
+
+/* UI Text Resizer Slider Styling with white pill/capsule thumb matching screenshot */
+.text-resizer-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 10px;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+  border: none;
+}
+
+.text-resizer-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 30px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #FFFFFF;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45);
+  margin-top: -4px;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.text-resizer-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.text-resizer-slider::-moz-range-track {
+  height: 10px;
+  border-radius: 9999px;
+  background: transparent;
+  border: none;
+}
+
+.text-resizer-slider::-moz-range-thumb {
+  width: 30px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #FFFFFF;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.text-resizer-slider::-moz-range-thumb:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+/* Caliper Readout Bar Responsive Grid */
+.caliper-readout-bar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px 12px;
+  align-items: center;
+}
+
+@media (max-width: 1080px) {
+  .caliper-readout-bar {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px 14px;
+  }
+}
+
+@media (max-width: 600px) {
+  .caliper-readout-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+  }
+}
+

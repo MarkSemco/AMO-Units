@@ -1,0 +1,88 @@
+:root {
+  /* Precision Scientific Dark Theme */
+  --color-bg-base: #0B0F17;              /* Deep space slate */
+  --color-bg-surface: #111827;           /* Refined slate-900 surface */
+  --color-bg-surface-elevated: #1E293B;  /* Slate-800 elevated panels & modals */
+  --color-bg-input: #090D16;             /* Inset dark input background */
+  --color-bg-input-hover: #0F172A;
+  
+  --color-border-subtle: #243042;        /* Crisp 1px neutral border */
+  --color-border-strong: #3E4C5E;        /* Active/focused neutral border */
+  
+  --color-text-primary: #F8FAFC;         /* High-contrast white/slate */
+  --color-text-secondary: #94A3B8;       /* Muted label text */
+  --color-text-muted: #64748B;           /* Hints, shortcuts, inactive icons */
+  
+  /* Tasteful, Muted Category Accent Colors (Non-neon) */
+  --color-optical: #38BDF8;              /* Scientific Sky/Cyan - Optical */
+  --color-optical-glow: rgba(56, 189, 248, 0.08);
+  --color-optical-badge: rgba(56, 189, 248, 0.12);
+  
+  --color-rf: #F59E0B;                   /* Amber - RF Electronics */
+  --color-rf-glow: rgba(245, 158, 11, 0.08);
+  --color-rf-badge: rgba(245, 158, 11, 0.12);
+  
+  --color-magnetic: #10B981;             /* Emerald - Magnetic & Zeeman */
+  --color-magnetic-glow: rgba(16, 185, 129, 0.08);
+  --color-magnetic-badge: rgba(16, 185, 129, 0.12);
+  
+  --color-laser: #C084FC;                /* Purple/Lilac - Laser & Rabi */
+  --color-laser-glow: rgba(192, 132, 252, 0.08);
+  --color-laser-badge: rgba(192, 132, 252, 0.12);
+  
+  --color-error-prop: #818CF8;           /* Indigo - Error Propagation */
+  --color-error-prop-glow: rgba(129, 140, 248, 0.08);
+  --color-error-prop-badge: rgba(129, 140, 248, 0.12);
+  
+  --color-preset: #60A5FA;               /* Blue - Presets & Species */
+  --color-preset-glow: rgba(96, 165, 250, 0.08);
+  --color-preset-badge: rgba(96, 165, 250, 0.12);
+  
+  /* Status Colors */
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', Menlo, Monaco, Consolas, monospace;
+  
+  --font-size-2xs: 0.6875rem; /* 11px */
+  --font-size-xs: 0.75rem;    /* 12px */
+  --font-size-sm: 0.875rem;   /* 14px */
+  --font-size-base: 1rem;     /* 16px */
+  --font-size-lg: 1.125rem;   /* 18px */
+  --font-size-xl: 1.25rem;    /* 20px */
+  --font-size-2xl: 1.5rem;    /* 24px */
+  --font-size-3xl: 1.875rem;  /* 30px */
+  
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Spacing */
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  
+  /* Border Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+  
+  /* Shadows - Crisp, non-glow */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.35), 0 2px 4px -2px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}

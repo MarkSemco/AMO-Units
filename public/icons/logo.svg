@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="100" fill="#0B0F17"/>
+  <circle cx="256" cy="256" r="180" stroke="#1E293B" stroke-width="4" stroke-dasharray="8 8"/>
+  
+  <!-- Optical Ring & Orbit -->
+  <ellipse cx="256" cy="256" rx="190" ry="80" stroke="#00E5FF" stroke-width="6" transform="rotate(-30 256 256)" opacity="0.8"/>
+  <ellipse cx="256" cy="256" rx="190" ry="80" stroke="#E040FB" stroke-width="6" transform="rotate(30 256 256)" opacity="0.8"/>
+  <ellipse cx="256" cy="256" rx="190" ry="80" stroke="#00E676" stroke-width="6" transform="rotate(90 256 256)" opacity="0.8"/>
+
+  <!-- RF Sine Wave Overlay -->
+  <path d="M 120 256 C 150 180, 180 180, 210 256 C 240 332, 270 332, 300 256 C 330 180, 360 180, 390 256" stroke="#FFB300" stroke-width="8" stroke-linecap="round" fill="none"/>
+  
+  <!-- Central Quantum Core -->
+  <circle cx="256" cy="256" r="32" fill="#7C4DFF"/>
+  <circle cx="256" cy="256" r="18" fill="#F8FAFC"/>
+  
+  <!-- Optical Photons / Nodes -->
+  <circle cx="120" cy="190" r="12" fill="#00E5FF"/>
+  <circle cx="392" cy="322" r="12" fill="#00E5FF"/>
+  <circle cx="392" cy="190" r="12" fill="#E040FB"/>
+  <circle cx="120" cy="322" r="12" fill="#E040FB"/>
+</svg>

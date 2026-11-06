@@ -1,0 +1,148 @@
+{
+  "source": "Daniel Steck Alkali Data (steck.us/alkalidata) / NIST ASD / McCarron (UConn) / Hemmerling (UCR) / Doyle (Harvard) / Tarbutt (Imperial) / FHI Berlin / Ludlow (RMP)",
+  "description": "Precompiled golden atomic and molecular preset transition parameters verified against peer-reviewed literature",
+  "presets": [
+    {
+      "id": "mol-alcl-main",
+      "species": "AlCl",
+      "name": "AlCl (Aluminum Monochloride)",
+      "transitionName": "A¹Π(v'=0) ← X¹Σ⁺(v''=0)",
+      "wavelengthNm": 261.5,
+      "linewidthMHz": 25.0,
+      "saturationIntensityMwPerCm2": 232.0,
+      "dipoleMomentDebye": 1.68,
+      "references": "J. R. Daniel et al., Phys. Rev. A 108, 062821 (2023); L.-R. Liu et al., Phys. Rev. A 111, 062810 (2025)"
+    },
+    {
+      "id": "mol-caf-b-x",
+      "species": "CaF",
+      "name": "CaF (Calcium Monofluoride)",
+      "transitionName": "B²Σ⁺(v'=0) ← X²Σ⁺(v''=0)",
+      "wavelengthNm": 531.0,
+      "linewidthMHz": 6.3,
+      "saturationIntensityMwPerCm2": 4.4,
+      "dipoleMomentDebye": 3.07,
+      "references": "B. Hemmerling et al., J. Phys. B 49, 174001 (2016); T. E. Wall et al., Phys. Rev. A 78, 062509 (2008)"
+    },
+    {
+      "id": "mol-caf-a-x",
+      "species": "CaF",
+      "name": "CaF (Calcium Monofluoride)",
+      "transitionName": "A²Π₁/₂(v'=0) ← X²Σ⁺(v''=0)",
+      "wavelengthNm": 606.3,
+      "linewidthMHz": 8.3,
+      "saturationIntensityMwPerCm2": 4.9,
+      "dipoleMomentDebye": 3.07,
+      "references": "S. Truppe et al., Nature Physics 13, 1173 (2017); L. W. Cheuk et al., Phys. Rev. Lett. 116, 143001 (2016)"
+    },
+    {
+      "id": "mol-alf-main",
+      "species": "AlF",
+      "name": "AlF (Aluminum Monofluoride)",
+      "transitionName": "A¹Π(v'=0) ← X¹Σ⁺(v''=0)",
+      "wavelengthNm": 227.5,
+      "linewidthMHz": 84.0,
+      "saturationIntensityMwPerCm2": 930.0,
+      "dipoleMomentDebye": 1.515,
+      "references": "S. Truppe, S. Marx, S. Kray et al., Phys. Rev. A 100, 052513 (2019)"
+    },
+    {
+      "id": "atom-rb87-d2",
+      "species": "⁸⁷Rb",
+      "name": "Rubidium-87 (⁸⁷Rb)",
+      "transitionName": "D₂ Line (5²S₁/₂ → 5²P₃/₂)",
+      "wavelengthNm": 780.241,
+      "linewidthMHz": 6.067,
+      "saturationIntensityMwPerCm2": 1.669,
+      "dipoleMomentDebye": 10.745,
+      "references": "Daniel Steck, Rubidium 87 D Line Data, Oregon / Los Alamos (rev. 2023)"
+    },
+    {
+      "id": "atom-rb87-d1",
+      "species": "⁸⁷Rb",
+      "name": "Rubidium-87 (⁸⁷Rb)",
+      "transitionName": "D₁ Line (5²S₁/₂ → 5²P₁/₂)",
+      "wavelengthNm": 794.979,
+      "linewidthMHz": 5.750,
+      "saturationIntensityMwPerCm2": 4.484,
+      "dipoleMomentDebye": 7.606,
+      "references": "Daniel Steck, Rubidium 87 D Line Data, Oregon / Los Alamos (rev. 2023)"
+    },
+    {
+      "id": "atom-rb85-d2",
+      "species": "⁸⁵Rb",
+      "name": "Rubidium-85 (⁸⁵Rb)",
+      "transitionName": "D₂ Line (5²S₁/₂ → 5²P₃/₂)",
+      "wavelengthNm": 780.241,
+      "linewidthMHz": 6.067,
+      "saturationIntensityMwPerCm2": 1.669,
+      "dipoleMomentDebye": 10.745,
+      "references": "Daniel Steck, Rubidium 85 D Line Data, Oregon / Los Alamos (rev. 2021)"
+    },
+    {
+      "id": "atom-rb85-d1",
+      "species": "⁸⁵Rb",
+      "name": "Rubidium-85 (⁸⁵Rb)",
+      "transitionName": "D₁ Line (5²S₁/₂ → 5²P₁/₂)",
+      "wavelengthNm": 794.979,
+      "linewidthMHz": 5.750,
+      "saturationIntensityMwPerCm2": 4.484,
+      "dipoleMomentDebye": 7.606,
+      "references": "Daniel Steck, Rubidium 85 D Line Data, Oregon / Los Alamos (rev. 2021)"
+    },
+    {
+      "id": "atom-cs133-d2",
+      "species": "¹³³Cs",
+      "name": "Cesium-133 (¹³³Cs)",
+      "transitionName": "D₂ Line (6²S₁/₂ → 6²P₃/₂)",
+      "wavelengthNm": 852.347,
+      "linewidthMHz": 5.234,
+      "saturationIntensityMwPerCm2": 1.102,
+      "dipoleMomentDebye": 11.956,
+      "references": "Daniel Steck, Cesium D Line Data, Oregon / Los Alamos (rev. 2021)"
+    },
+    {
+      "id": "atom-cs133-d1",
+      "species": "¹³³Cs",
+      "name": "Cesium-133 (¹³³Cs)",
+      "transitionName": "D₁ Line (6²S₁/₂ → 6²P₁/₂)",
+      "wavelengthNm": 894.593,
+      "linewidthMHz": 4.575,
+      "saturationIntensityMwPerCm2": 2.498,
+      "dipoleMomentDebye": 8.343,
+      "references": "Daniel Steck, Cesium D Line Data, Oregon / Los Alamos (rev. 2021)"
+    },
+    {
+      "id": "atom-sr88-blue",
+      "species": "⁸⁸Sr",
+      "name": "Strontium-88 (⁸⁸Sr)",
+      "transitionName": "Broad Blue Singlet (¹S₀ → ¹P₁)",
+      "wavelengthNm": 460.862,
+      "linewidthMHz": 30.5,
+      "saturationIntensityMwPerCm2": 40.3,
+      "dipoleMomentDebye": 13.34,
+      "references": "NIST ASD; Sansonetti & Nave, JPCRD 39, 033103 (2010); Ludlow et al., RMP 87, 637 (2015)"
+    },
+    {
+      "id": "atom-sr88-red",
+      "species": "⁸⁸Sr",
+      "name": "Strontium-88 (⁸⁸Sr)",
+      "transitionName": "Narrow Red Triplet Intercombination (¹S₀ → ³P₁)",
+      "wavelengthNm": 689.449,
+      "linewidthMHz": 0.0074,
+      "saturationIntensityMwPerCm2": 0.003,
+      "dipoleMomentDebye": 0.05,
+      "references": "T. Ido et al., Phys. Rev. A 61, 061403(R) (2000); H. Katori et al., PRL 82, 1116 (1999)"
+    },
+    {
+      "id": "atom-sr87-clock",
+      "species": "⁸⁷Sr",
+      "name": "Strontium-87 (⁸⁷Sr)",
+      "transitionName": "Ultra-Narrow Optical Lattice Clock (¹S₀ → ³P₀)",
+      "wavelengthNm": 698.446,
+      "linewidthMHz": 0.0000000012,
+      "saturationIntensityMwPerCm2": 0.0000000004,
+      "references": "M. M. Boyd et al., Science 314, 1430 (2006); A. D. Ludlow et al., Rev. Mod. Phys. 87, 637 (2015)"
+    }
+  ]
+}
