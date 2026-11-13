@@ -32,12 +32,17 @@ export const PoincareSphereVisualizer: React.FC<PoincareSphereVisualizerProps> =
 
   // Mouse drag handlers
   const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (typeof window !== 'undefined' && window.getSelection) {
+      window.getSelection()?.removeAllRanges();
+    }
     setIsDragging(true);
     lastMousePosRef.current = { x: e.clientX, y: e.clientY };
   };
 
   useEffect(() => {
     if (!isDragging) return;
+    document.body.classList.add('is-sim-dragging');
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!lastMousePosRef.current) return;
@@ -57,6 +62,7 @@ export const PoincareSphereVisualizer: React.FC<PoincareSphereVisualizerProps> =
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
     return () => {
+      document.body.classList.remove('is-sim-dragging');
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
@@ -184,7 +190,7 @@ export const PoincareSphereVisualizer: React.FC<PoincareSphereVisualizerProps> =
   // Stage trajectory line & markers
   const stageMarkers = useMemo(() => {
     return stages.map((stg, idx) => {
-      const { s1Norm, s2Norm, s3Norm } = stg.poincare;
+      const { s1Norm = 0, s2Norm = 0, s3Norm = 0 } = stg?.poincare ?? {};
       const proj = project3D(s1Norm, s2Norm, s3Norm);
       return {
         stageIndex: idx,
@@ -211,7 +217,6 @@ export const PoincareSphereVisualizer: React.FC<PoincareSphereVisualizerProps> =
   return (
     <Card
       title="Poincaré Sphere"
-      subtitle="Stokes vector representation and trajectory through the optical train."
       category="laser"
       icon={<Globe size={20} />}
       collapsible={true}
@@ -263,6 +268,7 @@ export const PoincareSphereVisualizer: React.FC<PoincareSphereVisualizerProps> =
 
         {/* 3D Sphere Interactive SVG Canvas */}
         <div
+          className="simulator-canvas"
           onMouseDown={handleMouseDown}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
@@ -279,6 +285,7 @@ export const PoincareSphereVisualizer: React.FC<PoincareSphereVisualizerProps> =
             overflow: 'hidden',
             cursor: isDragging ? 'grabbing' : 'grab',
             userSelect: 'none',
+            WebkitUserSelect: 'none',
             touchAction: 'none',
             padding: '12px'
           }}

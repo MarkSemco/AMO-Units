@@ -1,11 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import {
   deriveOpticalQuantities,
+  deriveOpticalUncertainties,
   energyFromWavelength,
   energyFromFrequency,
+  energyFromAngularFrequency,
   energyFromElectronVolts,
   energyFromWavenumber,
-  energyFromTemperature
+  energyFromTemperature,
+  energyUncertaintyFromWavelength,
+  energyUncertaintyFromFrequency,
+  energyUncertaintyFromAngularFrequency,
+  energyUncertaintyFromElectronVolts,
+  energyUncertaintyFromWavenumber,
+  energyUncertaintyFromTemperature
 } from '../optical';
 
 describe('Optical & Energy Conversion Engine', () => {
@@ -43,6 +51,10 @@ describe('Optical & Energy Conversion Engine', () => {
     // Round-trip from wavenumber
     const energyFromWavenumberDerived = energyFromWavenumber(q1.wavenumber.cmInv);
     expect(energyFromWavenumberDerived).toBeCloseTo(energyFromFreq, 20);
+
+    // Round-trip from angular frequency
+    const energyFromOmegaDerived = energyFromAngularFrequency(q1.angularFrequency.radPerSec);
+    expect(energyFromOmegaDerived).toBeCloseTo(energyFromFreq, 20);
 
     // Round-trip from temperature
     const energyFromTempDerived = energyFromTemperature(q1.temperature.K);
@@ -86,5 +98,103 @@ describe('Optical & Energy Conversion Engine', () => {
     expect(qAlCl.wavenumber.cmInv).toBeCloseTo(38240.9, 0);
     // Energy in eV approx 4.741 eV (UV photon)
     expect(qAlCl.energy.eV).toBeCloseTo(4.741, 2);
+  });
+
+  describe('Uncertainty Propagation Engine (ISO GUM)', () => {
+    it('propagates 1 pm uncertainty at 780.241 nm Rb transition across all optical representations', () => {
+      const lambda = 780.241e-9;
+      const sigmaLambda = 0.001e-9; // 1 pm uncertainty
+      const energyJ = energyFromWavelength(lambda);
+      const sigmaEnergyJ = energyUncertaintyFromWavelength(lambda, sigmaLambda);
+
+      const q = deriveOpticalQuantities(energyJ);
+      const u = deriveOpticalUncertainties(energyJ, sigmaEnergyJ);
+
+      // Relative uncertainty should be identically preserved
+      const relUncertainty = sigmaLambda / lambda;
+      expect(u.wavelength.nm / q.wavelength.nm).toBeCloseTo(relUncertainty, 10);
+      expect(u.frequency.THz / q.frequency.THz).toBeCloseTo(relUncertainty, 10);
+      expect(u.angularFrequency.radPerSec / q.angularFrequency.radPerSec).toBeCloseTo(relUncertainty, 10);
+      expect(u.energy.eV / q.energy.eV).toBeCloseTo(relUncertainty, 10);
+      expect(u.wavenumber.cmInv / q.wavenumber.cmInv).toBeCloseTo(relUncertainty, 10);
+      expect(u.temperature.K / q.temperature.K).toBeCloseTo(relUncertainty, 10);
+
+      // Derived wavelength uncertainty in nm matches 0.001 nm (1 pm)
+      expect(u.wavelength.nm).toBeCloseTo(0.001, 6);
+      expect(u.wavelength.um).toBeCloseTo(0.000001, 8);
+      expect(u.wavelength.angstrom).toBeCloseTo(0.01, 5);
+
+      // Derived frequency uncertainty: ~384.23 THz * (1e-12 / 780.241e-9) approx 492.45 kHz = 0.00049245 GHz
+      expect(u.frequency.MHz).toBeCloseTo(492.45, 1);
+    });
+
+    it('guarantees bidirectional round-trip consistency of uncertainties across all representations', () => {
+      const baseFreqHz = 384.230e12; // 384.23 THz
+      const baseEnergyJ = energyFromFrequency(baseFreqHz);
+
+      // 1. Frequency uncertainty round-trip
+      const sigmaFreqHz = 10e6; // 10 MHz uncertainty
+      const sigmaEJ_fromFreq = energyUncertaintyFromFrequency(sigmaFreqHz);
+      const uFromFreq = deriveOpticalUncertainties(baseEnergyJ, sigmaEJ_fromFreq);
+      expect(uFromFreq.frequency.Hz).toBeCloseTo(sigmaFreqHz, 5);
+
+      // 2. Wavelength uncertainty round-trip
+      const lambdaMeters = deriveOpticalQuantities(baseEnergyJ).wavelength.m;
+      const sigmaLambdaMeters = 0.005e-9; // 5 pm
+      const sigmaEJ_fromWavelength = energyUncertaintyFromWavelength(lambdaMeters, sigmaLambdaMeters);
+      const uFromWavelength = deriveOpticalUncertainties(baseEnergyJ, sigmaEJ_fromWavelength);
+      expect(uFromWavelength.wavelength.m).toBeCloseTo(sigmaLambdaMeters, 15);
+
+      // 3. Angular frequency uncertainty round-trip
+      const sigmaOmega = 1e6; // 1 Mrad/s
+      const sigmaEJ_fromOmega = energyUncertaintyFromAngularFrequency(sigmaOmega);
+      const uFromOmega = deriveOpticalUncertainties(baseEnergyJ, sigmaEJ_fromOmega);
+      expect(uFromOmega.angularFrequency.radPerSec).toBeCloseTo(sigmaOmega, 5);
+
+      // 4. Energy eV uncertainty round-trip
+      const sigmaEV = 1e-4; // 0.1 meV
+      const sigmaEJ_fromEV = energyUncertaintyFromElectronVolts(sigmaEV);
+      const uFromEV = deriveOpticalUncertainties(baseEnergyJ, sigmaEJ_fromEV);
+      expect(uFromEV.energy.eV).toBeCloseTo(sigmaEV, 8);
+
+      // 5. Wavenumber cm^-1 uncertainty round-trip
+      const sigmaCmInv = 0.05; // 0.05 cm^-1
+      const sigmaEJ_fromCmInv = energyUncertaintyFromWavenumber(sigmaCmInv);
+      const uFromCmInv = deriveOpticalUncertainties(baseEnergyJ, sigmaEJ_fromCmInv);
+      expect(uFromCmInv.wavenumber.cmInv).toBeCloseTo(sigmaCmInv, 8);
+
+      // 6. Temperature Kelvin uncertainty round-trip
+      const sigmaK = 0.2; // 0.2 Kelvin
+      const sigmaEJ_fromTemp = energyUncertaintyFromTemperature(sigmaK);
+      const uFromTemp = deriveOpticalUncertainties(baseEnergyJ, sigmaEJ_fromTemp);
+      expect(uFromTemp.temperature.K).toBeCloseTo(sigmaK, 8);
+    });
+
+    it('safely handles zero, negative, NaN, and boundary uncertainty inputs without crashing', () => {
+      expect(energyUncertaintyFromWavelength(500e-9, 0)).toBe(0);
+      expect(energyUncertaintyFromWavelength(500e-9, -1e-9)).toBe(0);
+      expect(energyUncertaintyFromWavelength(0, 1e-9)).toBe(0);
+      expect(energyUncertaintyFromWavelength(NaN, 1e-9)).toBe(0);
+
+      expect(energyUncertaintyFromFrequency(0)).toBe(0);
+      expect(energyUncertaintyFromFrequency(-50)).toBe(0);
+      expect(energyUncertaintyFromFrequency(NaN)).toBe(0);
+
+      expect(energyUncertaintyFromAngularFrequency(-10)).toBe(0);
+      expect(energyUncertaintyFromElectronVolts(-1)).toBe(0);
+      expect(energyUncertaintyFromWavenumber(-0.5)).toBe(0);
+      expect(energyUncertaintyFromTemperature(-5)).toBe(0);
+
+      const zeroUnc = deriveOpticalUncertainties(1e-19, 0);
+      expect(zeroUnc.wavelength.nm).toBe(0);
+      expect(zeroUnc.frequency.Hz).toBe(0);
+      expect(zeroUnc.energy.eV).toBe(0);
+      expect(zeroUnc.wavenumber.cmInv).toBe(0);
+      expect(zeroUnc.temperature.K).toBe(0);
+
+      const zeroEnergyUnc = deriveOpticalUncertainties(0, 1e-21);
+      expect(zeroEnergyUnc.wavelength.nm).toBe(0);
+      expect(zeroEnergyUnc.frequency.Hz).toBe(0);
+    });
   });
 });

@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { Card } from '../../common/Card';
-import { Button } from '../../common/Button';
 import { MathView } from '../../common/MathView';
 import {
   JonesVector,
@@ -13,7 +12,7 @@ import { PolarizationOpticalRail } from './PolarizationOpticalRail';
 import { PolarizationEllipseVisualizer } from './PolarizationEllipseVisualizer';
 import { PoincareSphereVisualizer } from './PoincareSphereVisualizer';
 import { PolarizationConventionCard } from './PolarizationConventionCard';
-import { RotateCcw, Activity, Zap } from 'lucide-react';
+import { Activity } from 'lucide-react';
 import { useUndoRedo } from '../../../context/UndoRedoContext';
 
 export const PolarizationBench: React.FC = () => {
@@ -54,6 +53,29 @@ export const PolarizationBench: React.FC = () => {
     }
   };
 
+  const handleClearBeamline = () => {
+    const prevOptics = optics;
+    const prevJones = initialJones;
+    const defaultJ = getPresetPolarization('H', 1.0);
+    recordAction({
+      description: 'Clear Beamline Optics',
+      category: 'laser',
+      targetTab: 'laser',
+      undo: () => {
+        setOptics(prevOptics);
+        setInitialJones(prevJones);
+      },
+      redo: () => {
+        setOptics([]);
+        setInitialJones(defaultJ);
+        setSelectedStageIndex(0);
+      }
+    });
+    setInitialJones(defaultJ);
+    setOptics([]);
+    setSelectedStageIndex(0);
+  };
+
   // Propagate polarization through optical train
   const propagationResult = useMemo(() => {
     return propagatePolarization(initialJones, optics);
@@ -68,87 +90,6 @@ export const PolarizationBench: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
-      {/* Bench Overview & Telemetry Banner */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 'var(--space-md)',
-          padding: '12px 18px',
-          backgroundColor: 'var(--color-bg-surface)',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--color-border-subtle)',
-          boxShadow: 'var(--shadow-sm)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: 'var(--radius-sm)',
-              backgroundColor: 'var(--color-laser-badge)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--color-laser)'
-            }}
-          >
-            <Zap size={20} />
-          </div>
-          <div>
-            <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'bold', color: 'var(--color-text-primary)' }}>
-              Polarization & Waveplate Beamline
-            </div>
-            <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-muted)' }}>
-              Total Throughput:{' '}
-              <span className="font-mono text-laser" style={{ fontWeight: 'bold' }}>
-                {propagationResult.totalTransmissionPercent.toFixed(1)}%
-              </span>{' '}
-              · Final State:{' '}
-              <span className="font-mono text-optical" style={{ fontWeight: 'bold' }}>
-                {propagationResult.finalEllipse.description}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <Button
-            size="sm"
-            variant="ghost"
-            category="laser"
-            icon={<RotateCcw size={14} />}
-            onClick={() => {
-              const prevOptics = optics;
-              const prevJones = initialJones;
-              const defaultJ = getPresetPolarization('H', 1.0);
-              recordAction({
-                description: 'Clear Beamline Optics',
-                category: 'laser',
-                targetTab: 'laser',
-                undo: () => {
-                  setOptics(prevOptics);
-                  setInitialJones(prevJones);
-                },
-                redo: () => {
-                  setOptics([]);
-                  setInitialJones(defaultJ);
-                  setSelectedStageIndex(0);
-                }
-              });
-              setInitialJones(defaultJ);
-              setOptics([]);
-              setSelectedStageIndex(0);
-            }}
-          >
-            Clear Beamline
-          </Button>
-        </div>
-      </div>
-
       {/* 1. 5-Way Input Polarization Converter */}
       <PolarizationInputConverter
         value={initialJones}
@@ -164,6 +105,7 @@ export const PolarizationBench: React.FC = () => {
         stages={propagationResult.stages}
         selectedStageIndex={safeStageIndex}
         onSelectStage={idx => setSelectedStageIndex(idx)}
+        onClear={handleClearBeamline}
       />
 
       {/* 3. Dual Visualizer Suite: Side-by-Side 2D E-Field Ellipse + 3D Poincaré Sphere */}
@@ -190,7 +132,6 @@ export const PolarizationBench: React.FC = () => {
       {/* 4. Stage Telemetry & Matrix Diagnostics Card */}
       <Card
         title={safeStageIndex === 0 ? 'Stage 0 (Input) Diagnostics' : `Stage ${safeStageIndex} Diagnostics: ${activeStage.opticName || `Stage ${safeStageIndex}`}`}
-        subtitle="State vectors, Stokes parameters, and Jones matrix representation."
         category="laser"
         icon={<Activity size={20} />}
         collapsible={true}

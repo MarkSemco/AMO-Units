@@ -10,7 +10,7 @@ export const TEXT_SCALE_PRESETS = [
 ] as const;
 
 export interface SettingsState {
-  precisionDigits: number; // 4 to 10, default 6
+  precisionDigits: number; // 1 to 14, default 6
   defaultImpedance: number; // 50, 75, 1000000, etc.
   copyFormatWithUnits: boolean;
   textScale: number; // 0.85 to 1.30, default 1.0
@@ -79,9 +79,15 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           textScale = parsed.textScale;
         }
 
+        let precisionDigits = defaultSettings.precisionDigits;
+        if (typeof parsed.precisionDigits === 'number' && !isNaN(parsed.precisionDigits)) {
+          precisionDigits = Math.max(1, Math.min(14, Math.round(parsed.precisionDigits)));
+        }
+
         return {
           ...defaultSettings,
           ...parsed,
+          precisionDigits,
           textScale,
           activeTab
         };
@@ -151,8 +157,11 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [settings.precisionDigits, settings.defaultImpedance, settings.copyFormatWithUnits, settings.textScale]);
 
   const setPrecisionDigits = (digits: number) => {
-    const clamped = Math.max(4, Math.min(10, digits));
-    setSettings(prev => ({ ...prev, precisionDigits: clamped }));
+    const val = Number(digits);
+    if (!isNaN(val) && isFinite(val)) {
+      const clamped = Math.max(1, Math.min(14, Math.round(val)));
+      setSettings(prev => ({ ...prev, precisionDigits: clamped }));
+    }
   };
 
   const setDefaultImpedance = (impedance: number) => {

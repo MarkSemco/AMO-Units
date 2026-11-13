@@ -75,25 +75,35 @@ export const Card: React.FC<CardProps> = ({
             justifyContent: 'space-between',
             gap: 'var(--space-sm)',
             borderBottom: isSectionCollapsed ? 'none' : '1px solid var(--color-border-subtle)',
-            paddingBottom: isSectionCollapsed ? 0 : 'var(--space-xs)',
-            marginBottom: isSectionCollapsed ? 0 : 'var(--space-xs)',
+            paddingBottom: isSectionCollapsed ? 0 : '10px',
+            marginBottom: isSectionCollapsed ? 0 : '8px',
+            minHeight: '38px',
             userSelect: 'auto'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: subtitle ? 'flex-start' : 'center', gap: '10px' }}>
             {icon && (
-              <span style={{ color: getCategoryColor(), display: 'flex' }}>
+              <span
+                style={{
+                  color: getCategoryColor(),
+                  display: 'flex',
+                  alignItems: 'center',
+                  marginTop: subtitle ? '2px' : 0
+                }}
+              >
                 {icon}
               </span>
             )}
-            <div>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               {title && (
                 <h3
                   style={{
                     fontSize: 'var(--font-size-base)',
                     fontWeight: 'var(--font-weight-semibold)',
                     color: 'var(--color-text-primary)',
-                    margin: 0
+                    margin: 0,
+                    lineHeight: 1.3,
+                    letterSpacing: '-0.01em'
                   }}
                 >
                   {title}
@@ -104,7 +114,9 @@ export const Card: React.FC<CardProps> = ({
                   style={{
                     fontSize: 'var(--font-size-xs)',
                     color: 'var(--color-text-muted)',
-                    margin: 0
+                    margin: 0,
+                    marginTop: '2px',
+                    lineHeight: 1.3
                   }}
                 >
                   {subtitle}

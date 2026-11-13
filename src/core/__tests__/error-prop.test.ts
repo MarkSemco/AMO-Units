@@ -173,6 +173,52 @@ describe('Error Propagation Symbolic & Numeric Engine', () => {
     expect(evalRes.totalUncertainty).toBeCloseTo(6.62607015e-23, 27);
   });
 
+  it('evaluates with disabledConstants, overriding known constant value and propagating uncertainty', () => {
+    // Formula: E = hbar * omega
+    const parseRes = parseExpression('hbar * omega');
+    expect(parseRes.isValid).toBe(true);
+
+    // Differentiate with respect to both hbar and omega (hbar disabled as constant)
+    const partials = computePartialDerivatives(parseRes.astNode!, ['hbar', 'omega']);
+    expect(partials.length).toBe(2);
+
+    // Evaluate with hbar treated as variable (e.g. hbar = 2, omega = 5, unc_hbar = 0.2, unc_omega = 0.1)
+    const evalRes = evaluateErrorPropagation({
+      expressionNode: parseRes.astNode!,
+      variableValues: { hbar: 2, omega: 5 },
+      uncertainties: { hbar: 0.2, omega: 0.1 },
+      derivatives: partials,
+      disabledConstants: ['hbar']
+    });
+
+    // Nominal: 2 * 5 = 10 (not CODATA hbar * 5!)
+    expect(evalRes.nominalValue).toBe(10);
+    // Derivatives: df/dhbar = omega = 5; df/domega = hbar = 2
+    // Variance: (5 * 0.2)^2 + (2 * 0.1)^2 = 1.0^2 + 0.2^2 = 1.04
+    // sigma_f = sqrt(1.04) approx 1.0198
+    expect(evalRes.totalUncertainty).toBeCloseTo(Math.sqrt(1.04), 4);
+  });
+
+  it('formats physical constants in LaTeX equations: hbar renders as \\hbar, pi as \\pi, etc.', () => {
+    const parseRes = parseExpression('hbar * omega + kB * T + pi * r^2 + epsilon0 * E');
+    expect(parseRes.isValid).toBe(true);
+
+    const partials = computePartialDerivatives(parseRes.astNode!, ['omega']);
+    const latex = generateLatexEquations(parseRes.astNode!, partials);
+
+    // hbar renders as \hbar
+    expect(latex.nominalFormulaLatex).toContain('\\hbar');
+
+    // pi formatted as \pi
+    expect(latex.nominalFormulaLatex).toContain('\\pi');
+
+    // kB formatted as k_{B}
+    expect(latex.nominalFormulaLatex).toContain('k_{B}');
+
+    // epsilon0 formatted as \epsilon_{0}
+    expect(latex.nominalFormulaLatex).toContain('\\epsilon_{0}');
+  });
+
   it('handles division by zero and negative radical safely in numerical evaluation', () => {
     const parseRes = parseExpression('1 / x');
     const partials = computePartialDerivatives(parseRes.astNode!, ['x']);

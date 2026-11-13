@@ -70,12 +70,17 @@ export const PolarizationWave3DVisualizer: React.FC<PolarizationWave3DVisualizer
 
   // Mouse & Touch Orbit Controls - Matches Poincaré Sphere intuitive pan/rotate
   const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (typeof window !== 'undefined' && window.getSelection) {
+      window.getSelection()?.removeAllRanges();
+    }
     setIsDragging(true);
     lastMousePosRef.current = { x: e.clientX, y: e.clientY };
   };
 
   useEffect(() => {
     if (!isDragging) return;
+    document.body.classList.add('is-sim-dragging');
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!lastMousePosRef.current) return;
@@ -95,6 +100,7 @@ export const PolarizationWave3DVisualizer: React.FC<PolarizationWave3DVisualizer
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
     return () => {
+      document.body.classList.remove('is-sim-dragging');
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
@@ -410,6 +416,7 @@ export const PolarizationWave3DVisualizer: React.FC<PolarizationWave3DVisualizer
 
       {/* 3D Wave Perspective SVG Canvas */}
       <div
+        className="simulator-canvas"
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -426,10 +433,17 @@ export const PolarizationWave3DVisualizer: React.FC<PolarizationWave3DVisualizer
           overflow: 'hidden',
           padding: '8px',
           cursor: isDragging ? 'grabbing' : 'grab',
-          touchAction: 'none'
+          touchAction: 'none',
+          userSelect: 'none',
+          WebkitUserSelect: 'none'
         }}
       >
-        <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
+        <svg
+          width="100%"
+          height={height}
+          viewBox={`0 0 ${width} ${height}`}
+          style={{ overflow: 'visible', userSelect: 'none', WebkitUserSelect: 'none' }}
+        >
           {/* Toggleable Perspective Reference Planes (Table floor xz and vertical wall yz) */}
           {showRefPlanes && (
             <g>

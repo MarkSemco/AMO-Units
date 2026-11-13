@@ -17,6 +17,7 @@ export interface EvaluationInput {
   secondDerivatives?: AnalyticalSecondDerivative[];
   covarianceEnabled?: boolean;
   correlations?: CorrelationItem[];
+  disabledConstants?: string[];
 }
 
 export interface EvaluationOutput {
@@ -48,16 +49,33 @@ export function evaluateErrorPropagation(input: EvaluationInput): EvaluationOutp
     derivatives,
     secondDerivatives,
     covarianceEnabled = false,
-    correlations = []
+    correlations = [],
+    disabledConstants = []
   } = input;
 
   const secondDerivList = secondDerivatives ?? computeSecondDerivatives(derivatives);
 
-  // Build complete scope including built-in physical constants
+  // Filter active physical constants: constants in disabledConstants are removed from physical constants
+  const activePhysicalConstants: Record<string, number> = { ...BUILTIN_PHYSICAL_CONSTANTS };
+  if (disabledConstants && disabledConstants.length > 0) {
+    for (const dc of disabledConstants) {
+      delete activePhysicalConstants[dc];
+    }
+  }
+
+  // Build complete scope:
+  // - Mathematical functions (ln)
+  // - User-defined variable values (including any constant deselected to be a variable)
+  // - Active physical constants (overriding any non-deselected variable to ensure known constant values)
+  const filteredVariableValues = { ...variableValues };
+  for (const c of Object.keys(activePhysicalConstants)) {
+    delete filteredVariableValues[c];
+  }
+
   const scope: Record<string, any> = {
-    ...BUILTIN_PHYSICAL_CONSTANTS,
     ln: (x: number) => Math.log(x),
-    ...variableValues
+    ...filteredVariableValues,
+    ...activePhysicalConstants
   };
 
   try {

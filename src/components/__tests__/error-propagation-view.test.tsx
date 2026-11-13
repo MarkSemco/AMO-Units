@@ -27,7 +27,7 @@ describe('ErrorPropagationView Component & Second-Order Interaction', () => {
 
     // Persistent toggle is present
     const toggleCheckbox = screen.getByRole('checkbox', {
-      name: /Include 2nd-order curvature corrections \(ISO GUM Supplement 1\)/i
+      name: /Include 2nd-order curvature corrections/i
     });
     expect(toggleCheckbox).toBeInTheDocument();
     expect(toggleCheckbox).not.toBeChecked();
@@ -48,7 +48,7 @@ describe('ErrorPropagationView Component & Second-Order Interaction', () => {
     );
 
     const toggleCheckbox = screen.getByRole('checkbox', {
-      name: /Include 2nd-order curvature corrections \(ISO GUM Supplement 1\)/i
+      name: /Include 2nd-order curvature corrections/i
     });
 
     // Click toggle to turn ON 2nd-order correction
@@ -116,7 +116,7 @@ describe('ErrorPropagationView Component & Second-Order Interaction', () => {
 
     // Persistent toggle is still fully accessible and clickable
     const toggleCheckbox = screen.getByRole('checkbox', {
-      name: /Include 2nd-order curvature corrections \(ISO GUM Supplement 1\)/i
+      name: /Include 2nd-order curvature corrections/i
     });
     expect(toggleCheckbox).toBeInTheDocument();
 
@@ -127,5 +127,98 @@ describe('ErrorPropagationView Component & Second-Order Interaction', () => {
     // Shows linear regime confirmation notice
     expect(screen.getByText(/Linear Regime/i)).toBeInTheDocument();
     expect(screen.getByText(/negligible effect/i)).toBeInTheDocument();
+  });
+});
+
+describe('Constant Auto-Detection and Toggle Behavior', () => {
+  it('does not display "(CODATA exact)" in auto constant detection', () => {
+    render(
+      <TestWrapper>
+        <ErrorPropagationView />
+      </TestWrapper>
+    );
+
+    // Default formula is 2 * P / (pi * w0^2), which detects 'pi'
+    expect(screen.getByText('Auto-Detected Physical/Math Constants:')).toBeInTheDocument();
+    // 'pi' constant button should be rendered
+    const piBtn = screen.getByRole('button', { name: /Constant pi:/i });
+    expect(piBtn).toBeInTheDocument();
+    expect(piBtn).toHaveAttribute('aria-pressed', 'true');
+
+    // "(CODATA exact)" should NOT exist anywhere in document
+    expect(screen.queryByText(/CODATA exact/i)).not.toBeInTheDocument();
+  });
+
+  it('allows clicking constant button to disable it from being treated as constant, converting to user variable', () => {
+    render(
+      <TestWrapper>
+        <ErrorPropagationView />
+      </TestWrapper>
+    );
+
+    // Change formula to hbar * omega
+    const formulaInput = screen.getByLabelText(/Mathematical formula for error propagation/i);
+    fireEvent.change(formulaInput, { target: { value: 'hbar * omega' } });
+
+    // Initially: omega is in variables checklist, hbar is in constants
+    expect(screen.getByText('omega')).toBeInTheDocument();
+    const hbarBtn = screen.getByRole('button', { name: /Constant hbar:/i });
+    expect(hbarBtn).toBeInTheDocument();
+    expect(hbarBtn).toHaveAttribute('aria-pressed', 'true');
+
+    // Click hbar constant button to toggle it into a user variable
+    fireEvent.click(hbarBtn);
+
+    // Now hbarBtn shows treated as user variable
+    expect(hbarBtn).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByText('(as variable)')).toBeInTheDocument();
+
+    // hbar now appears in the Auto-Detected Variables checklist
+    expect(screen.getByRole('checkbox', { name: /hbar/i })).toBeInTheDocument();
+
+    // Variable hbar card appears in the Numerical Uncertainty Evaluation section
+    expect(screen.getByText('Variable hbar')).toBeInTheDocument();
+
+    // Re-clicking restores it as physical constant
+    fireEvent.click(hbarBtn);
+    expect(hbarBtn).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByText('(as variable)')).not.toBeInTheDocument();
+    expect(screen.queryByText('Variable hbar')).not.toBeInTheDocument();
+  });
+
+  it('when constant is deselected, user can add error to it and enter custom value', () => {
+    render(
+      <TestWrapper>
+        <ErrorPropagationView />
+      </TestWrapper>
+    );
+
+    // Formula: hbar * omega
+    const formulaInput = screen.getByLabelText(/Mathematical formula for error propagation/i);
+    fireEvent.change(formulaInput, { target: { value: 'hbar * omega' } });
+
+    // Toggle hbar into a variable
+    const hbarBtn = screen.getByRole('button', { name: /Constant hbar:/i });
+    fireEvent.click(hbarBtn);
+
+    // Now find inputs for hbar and omega
+    // Set hbar value = 2, unc = 0.5
+    // Set omega value = 10, unc = 1
+    const valueInputs = screen.getAllByPlaceholderText('0.0');
+    // We have 4 inputs now (value & unc for hbar, value & unc for omega)
+    expect(valueInputs.length).toBeGreaterThanOrEqual(4);
+
+    // Update hbar value & unc
+    fireEvent.change(valueInputs[0], { target: { value: '2' } });
+    fireEvent.change(valueInputs[1], { target: { value: '0.5' } });
+    // Update omega value & unc
+    fireEvent.change(valueInputs[2], { target: { value: '10' } });
+    fireEvent.change(valueInputs[3], { target: { value: '1' } });
+
+    // Nominal: 2 * 10 = 20 (not 1.054e-34!)
+    // Derivatives: df/dhbar = 10, df/domega = 2
+    // Variance: (10 * 0.5)^2 + (2 * 1)^2 = 25 + 4 = 29
+    // sigma_f = sqrt(29) approx 5.385
+    expect(screen.getByText(/20\.0000/i)).toBeInTheDocument();
   });
 });

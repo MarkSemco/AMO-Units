@@ -106,7 +106,20 @@ export const SmithChart: React.FC<SmithChartProps> = ({
     [cx0, cy0, R0, safeZ0, onImpedanceChange]
   );
 
+  // Prevent accidental text selection across document while dragging on Smith chart
+  useEffect(() => {
+    if (!isDragging) return;
+    document.body.classList.add('is-sim-dragging');
+    return () => {
+      document.body.classList.remove('is-sim-dragging');
+    };
+  }, [isDragging]);
+
   const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    e.preventDefault();
+    if (typeof window !== 'undefined' && window.getSelection) {
+      window.getSelection()?.removeAllRanges();
+    }
     initialZRef.current = { r: rOhms, x: xOhms };
     currentZRef.current = { r: rOhms, x: xOhms };
     if (typeof e.currentTarget.setPointerCapture === 'function') {
@@ -256,12 +269,17 @@ export const SmithChart: React.FC<SmithChartProps> = ({
 
   return (
     <div
+      className="simulator-canvas"
+      onMouseDown={e => {
+        if (e.button === 0) e.preventDefault();
+      }}
       style={{
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         position: 'relative',
-        userSelect: 'none'
+        userSelect: 'none',
+        WebkitUserSelect: 'none'
       }}
     >
       <svg
@@ -273,7 +291,9 @@ export const SmithChart: React.FC<SmithChartProps> = ({
           height: 'auto',
           aspectRatio: '1 / 1',
           cursor: isDragging ? 'grabbing' : 'crosshair',
-          touchAction: 'none'
+          touchAction: 'none',
+          userSelect: 'none',
+          WebkitUserSelect: 'none'
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}

@@ -15,6 +15,7 @@ import {
   EyeOff,
   GripHorizontal,
   RotateCw,
+  RotateCcw,
   ChevronLeft,
   ChevronRight,
   Sliders,
@@ -28,6 +29,7 @@ export interface PolarizationOpticalRailProps {
   stages: StageResult[];
   selectedStageIndex: number;
   onSelectStage: (stageIndex: number) => void;
+  onClear?: () => void;
 }
 
 export const PolarizationOpticalRail: React.FC<PolarizationOpticalRailProps> = ({
@@ -36,7 +38,8 @@ export const PolarizationOpticalRail: React.FC<PolarizationOpticalRailProps> = (
   onCommitOptics,
   stages,
   selectedStageIndex,
-  onSelectStage
+  onSelectStage,
+  onClear
 }) => {
   // Reordering drag state (bottom grabbers)
   const [draggedOpticIndex, setDraggedOpticIndex] = useState<number | null>(null);
@@ -108,6 +111,7 @@ export const PolarizationOpticalRail: React.FC<PolarizationOpticalRailProps> = (
   // Global mousemove, touchmove, mouseup & touchend listeners for smooth continuous rotation
   useEffect(() => {
     if (!activeRotatingOpticId) return;
+    document.body.classList.add('is-sim-dragging');
 
     const handlePointerMove = (clientX: number, clientY: number) => {
       if (!rotatingStateRef.current) return;
@@ -157,12 +161,22 @@ export const PolarizationOpticalRail: React.FC<PolarizationOpticalRailProps> = (
     window.addEventListener('touchmove', handleTouchMove, { passive: false });
     window.addEventListener('touchend', handlePointerEnd);
     return () => {
+      document.body.classList.remove('is-sim-dragging');
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handlePointerEnd);
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handlePointerEnd);
     };
   }, [activeRotatingOpticId, optics, onChangeOptics, onCommitOptics]);
+
+  // Prevent text selection when reordering optics on the optical rail
+  useEffect(() => {
+    if (draggedOpticIndex === null) return;
+    document.body.classList.add('is-sim-dragging');
+    return () => {
+      document.body.classList.remove('is-sim-dragging');
+    };
+  }, [draggedOpticIndex]);
 
   // Optic modification helpers
   const handleUpdateOptic = (id: string, updates: Partial<PolarizationOptic>) => {
@@ -281,7 +295,6 @@ export const PolarizationOpticalRail: React.FC<PolarizationOpticalRailProps> = (
   return (
     <Card
       title="Optical Beamline"
-      subtitle="Sequential waveplates, polarizers, and rotators along the beam path."
       category="laser"
       icon={<Sliders size={20} />}
       collapsible={true}
@@ -421,6 +434,27 @@ export const PolarizationOpticalRail: React.FC<PolarizationOpticalRailProps> = (
               </div>
             )}
           </div>
+
+          {/* Clear Beamline Button */}
+          <Button
+            size="sm"
+            variant="ghost"
+            category="laser"
+            icon={<RotateCcw size={14} />}
+            onClick={() => {
+              setIsAddMenuOpen(false);
+              setIsPresetsMenuOpen(false);
+              if (onClear) {
+                onClear();
+              } else {
+                const prev = optics;
+                onChangeOptics([]);
+                if (onCommitOptics) onCommitOptics(prev, [], 'Clear Beamline Optics');
+              }
+            }}
+          >
+            Clear
+          </Button>
         </div>
       }
     >
@@ -434,6 +468,7 @@ export const PolarizationOpticalRail: React.FC<PolarizationOpticalRailProps> = (
           }}
         >
           <div
+            className="simulator-canvas"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -442,7 +477,9 @@ export const PolarizationOpticalRail: React.FC<PolarizationOpticalRailProps> = (
               backgroundColor: 'var(--color-bg-base)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--color-border-subtle)',
-              position: 'relative'
+              position: 'relative',
+              userSelect: 'none',
+              WebkitUserSelect: 'none'
             }}
           >
             {/* Visual Laser Beam Central Rail Track */}
@@ -577,6 +614,9 @@ export const PolarizationOpticalRail: React.FC<PolarizationOpticalRailProps> = (
                         isRotating={activeRotatingOpticId === optic.id}
                         onStartRotation={(e, center, clientPos) => {
                           e.preventDefault();
+                          if (typeof window !== 'undefined' && window.getSelection) {
+                            window.getSelection()?.removeAllRanges();
+                          }
                           startRotatingOpticsRef.current = optics.map(o => ({ ...o }));
                           setDraftInputs(prev => {
                             const next = { ...prev };
@@ -811,7 +851,11 @@ export const PolarizationOpticalRail: React.FC<PolarizationOpticalRailProps> = (
                       {/* Bottom Grabber Handle */}
                       <div
                         draggable
+                        className="simulator-interactive"
                         onDragStart={e => {
+                          if (typeof window !== 'undefined' && window.getSelection) {
+                            window.getSelection()?.removeAllRanges();
+                          }
                           e.dataTransfer.effectAllowed = 'move';
                           e.dataTransfer.setData('text/plain', String(index));
                           setDraggedOpticIndex(index);
@@ -830,7 +874,8 @@ export const PolarizationOpticalRail: React.FC<PolarizationOpticalRailProps> = (
                           padding: '2px 8px',
                           borderRadius: 'var(--radius-sm)',
                           backgroundColor: 'var(--color-bg-base)',
-                          userSelect: 'none'
+                          userSelect: 'none',
+                          WebkitUserSelect: 'none'
                         }}
                       >
                         <GripHorizontal size={14} />
@@ -924,6 +969,10 @@ const OpticVisualMount: React.FC<OpticVisualMountProps> = ({
   const mountRef = useRef<HTMLDivElement | null>(null);
 
   const handleGrabberStart = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    if (typeof window !== 'undefined' && window.getSelection) {
+      window.getSelection()?.removeAllRanges();
+    }
     if (!mountRef.current) return;
     const rect = mountRef.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
@@ -946,6 +995,7 @@ const OpticVisualMount: React.FC<OpticVisualMountProps> = ({
   return (
     <div
       ref={mountRef}
+      className="simulator-interactive"
       style={{
         width: '90px',
         height: '90px',
@@ -954,6 +1004,7 @@ const OpticVisualMount: React.FC<OpticVisualMountProps> = ({
         alignItems: 'center',
         justifyContent: 'center',
         userSelect: 'none',
+        WebkitUserSelect: 'none',
         touchAction: 'none'
       }}
     >

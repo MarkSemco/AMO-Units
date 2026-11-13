@@ -165,7 +165,6 @@ export const PolarizationInputConverter: React.FC<PolarizationInputConverterProp
   return (
     <Card
       title="Input Polarization State"
-      subtitle="Define input state via Jones vector, Stokes parameters, ellipse geometry (ψ, χ), or Poincaré coordinates."
       category="laser"
       icon={<Activity size={20} />}
       collapsible={true}

@@ -55,6 +55,17 @@ export interface SyncedInputProps {
   unitOptions?: Array<{ value: string; label: string }>;
   onUnitChange?: (newUnit: string) => void;
   placeholder?: string;
+  // Optional uncertainty propagation support:
+  showUncertainty?: boolean;
+  uncertaintyValue?: string | number;
+  onUncertaintyChange?: (value: string) => void;
+  onUncertaintyCommit?: (prevValue: string, nextValue: string) => void;
+  onUncertaintyFocus?: () => void;
+  onUncertaintyBlur?: () => void;
+  isUncertaintyActive?: boolean;
+  uncertaintyPlaceholder?: string;
+  formattedCombined?: string;
+  relativeUncertaintyPercent?: number;
 }
 
 export const SyncedInput: React.FC<SyncedInputProps> = ({
@@ -73,7 +84,17 @@ export const SyncedInput: React.FC<SyncedInputProps> = ({
   description,
   unitOptions,
   onUnitChange,
-  placeholder = '0.0'
+  placeholder = '0.0',
+  showUncertainty = false,
+  uncertaintyValue,
+  onUncertaintyChange,
+  onUncertaintyCommit,
+  onUncertaintyFocus,
+  onUncertaintyBlur,
+  isUncertaintyActive = false,
+  uncertaintyPlaceholder = '0.0',
+  formattedCombined,
+  relativeUncertaintyPercent
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   // Local state to store draft user typing so trailing decimals and partial scientific notation ('1e-') are preserved
@@ -86,6 +107,17 @@ export const SyncedInput: React.FC<SyncedInputProps> = ({
   const { copyToClipboard, hasCopied } = useClipboard();
   const { copyFormatWithUnits } = useSettings();
 
+  // Local state for uncertainty input
+  const [draftUncertainty, setDraftUncertainty] = useState<string>(
+    uncertaintyValue !== undefined && uncertaintyValue !== null ? String(uncertaintyValue) : ''
+  );
+  const [isUncertaintyFocused, setIsUncertaintyFocused] = useState<boolean>(false);
+  const initialUncertaintyOnFocusRef = useRef<string>(
+    uncertaintyValue !== undefined && uncertaintyValue !== null ? String(uncertaintyValue) : ''
+  );
+  const lastRevertedDraftUncertaintyRef = useRef<string | null>(null);
+  const stepperUncertaintyCommitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Only update draft value when the field is NOT being actively edited by the user
   useEffect(() => {
     if (!isFocused && !isActive) {
@@ -95,10 +127,23 @@ export const SyncedInput: React.FC<SyncedInputProps> = ({
     }
   }, [value, isFocused, isActive]);
 
+  // Only update draft uncertainty when not actively focused or active
+  useEffect(() => {
+    if (!isUncertaintyFocused && !isUncertaintyActive) {
+      const nextStr = uncertaintyValue !== undefined && uncertaintyValue !== null ? String(uncertaintyValue) : '';
+      setDraftUncertainty(nextStr);
+      initialUncertaintyOnFocusRef.current = nextStr;
+      lastRevertedDraftUncertaintyRef.current = null;
+    }
+  }, [uncertaintyValue, isUncertaintyFocused, isUncertaintyActive]);
+
   useEffect(() => {
     return () => {
       if (stepperCommitTimerRef.current) {
         clearTimeout(stepperCommitTimerRef.current);
+      }
+      if (stepperUncertaintyCommitTimerRef.current) {
+        clearTimeout(stepperUncertaintyCommitTimerRef.current);
       }
     };
   }, []);
@@ -190,6 +235,85 @@ export const SyncedInput: React.FC<SyncedInputProps> = ({
     const compactUnit = getCompactUnitDisplay(unit);
     const textToCopy = copyFormatWithUnits && compactUnit ? `${draftValue} ${compactUnit}` : draftValue;
     copyToClipboard(textToCopy, `Copied ${label}: ${textToCopy}`);
+  };
+
+  const handleUncertaintyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    lastRevertedDraftUncertaintyRef.current = null;
+    const val = e.target.value;
+    setDraftUncertainty(val);
+    if (onUncertaintyChange) onUncertaintyChange(val);
+  };
+
+  const handleUncertaintyKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+      return;
+    }
+
+    const isCmdOrCtrl = e.metaKey || e.ctrlKey;
+
+    if (isCmdOrCtrl && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
+      if (draftUncertainty !== initialUncertaintyOnFocusRef.current) {
+        e.preventDefault();
+        e.stopPropagation();
+        lastRevertedDraftUncertaintyRef.current = draftUncertainty;
+        const prev = initialUncertaintyOnFocusRef.current;
+        setDraftUncertainty(prev);
+        if (onUncertaintyChange) onUncertaintyChange(prev);
+        return;
+      }
+    }
+
+    if (
+      (isCmdOrCtrl && e.shiftKey && (e.key === 'z' || e.key === 'Z')) ||
+      (isCmdOrCtrl && (e.key === 'y' || e.key === 'Y'))
+    ) {
+      if (lastRevertedDraftUncertaintyRef.current !== null && draftUncertainty === initialUncertaintyOnFocusRef.current) {
+        e.preventDefault();
+        e.stopPropagation();
+        const restored = lastRevertedDraftUncertaintyRef.current;
+        lastRevertedDraftUncertaintyRef.current = null;
+        setDraftUncertainty(restored);
+        if (onUncertaintyChange) onUncertaintyChange(restored);
+        return;
+      }
+    }
+
+    handleNumberStepperKeyDown(e, newVal => {
+      lastRevertedDraftUncertaintyRef.current = null;
+      setDraftUncertainty(newVal);
+      if (onUncertaintyChange) onUncertaintyChange(newVal);
+
+      if (stepperUncertaintyCommitTimerRef.current) {
+        clearTimeout(stepperUncertaintyCommitTimerRef.current);
+      }
+      stepperUncertaintyCommitTimerRef.current = setTimeout(() => {
+        if (onUncertaintyCommit && initialUncertaintyOnFocusRef.current !== newVal) {
+          onUncertaintyCommit(initialUncertaintyOnFocusRef.current, newVal);
+          initialUncertaintyOnFocusRef.current = newVal;
+        }
+      }, 700);
+    });
+  };
+
+  const handleUncertaintyFocus = () => {
+    initialUncertaintyOnFocusRef.current = String(uncertaintyValue ?? '');
+    setIsUncertaintyFocused(true);
+    if (onUncertaintyFocus) onUncertaintyFocus();
+  };
+
+  const handleUncertaintyBlur = () => {
+    lastRevertedDraftUncertaintyRef.current = null;
+    if (stepperUncertaintyCommitTimerRef.current) {
+      clearTimeout(stepperUncertaintyCommitTimerRef.current);
+    }
+    setIsUncertaintyFocused(false);
+    if (onUncertaintyBlur) onUncertaintyBlur();
+
+    if (onUncertaintyCommit && initialUncertaintyOnFocusRef.current !== draftUncertainty) {
+      onUncertaintyCommit(initialUncertaintyOnFocusRef.current, draftUncertainty);
+      initialUncertaintyOnFocusRef.current = draftUncertainty;
+    }
   };
 
   const categoryColor = `var(--color-${category})`;
@@ -390,6 +514,108 @@ export const SyncedInput: React.FC<SyncedInputProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Uncertainty Section (when enabled) */}
+      {showUncertainty && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '2px' }}>
+          {/* Uncertainty Input Row */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              backgroundColor: isUncertaintyFocused ? 'var(--color-bg-input-hover)' : 'var(--color-bg-input)',
+              border: `1px solid ${isUncertaintyFocused ? categoryColor : 'var(--color-border-subtle)'}`,
+              borderRadius: 'var(--radius-md)',
+              boxShadow: isUncertaintyFocused ? `0 0 0 2px ${categoryBadge}` : 'var(--shadow-sm)',
+              transition: 'all var(--transition-fast)',
+              overflow: 'hidden',
+              padding: '2px 8px 2px 10px',
+              width: '100%',
+              minWidth: 0
+            }}
+          >
+            <span
+              className="font-mono"
+              style={{
+                color: categoryColor,
+                fontWeight: 'var(--font-weight-semibold)',
+                fontSize: 'var(--font-size-sm)',
+                marginRight: '6px',
+                userSelect: 'none'
+              }}
+            >
+              ± σ
+            </span>
+            <input
+              id={`${id}-uncertainty`}
+              data-synced-input="true"
+              type="text"
+              inputMode="decimal"
+              value={draftUncertainty}
+              onChange={handleUncertaintyChange}
+              onKeyDown={handleUncertaintyKeyDown}
+              onFocus={handleUncertaintyFocus}
+              onBlur={handleUncertaintyBlur}
+              disabled={disabled}
+              placeholder={uncertaintyPlaceholder}
+              title={draftUncertainty ? `± ${draftUncertainty}` : 'Uncertainty'}
+              aria-label={`${label} uncertainty in ${unit}`}
+              className="font-mono"
+              style={{
+                flex: 1,
+                width: '100%',
+                fontSize: 'var(--font-size-sm)',
+                color: 'var(--color-text-primary)',
+                padding: '4px 0',
+                minWidth: 0,
+                outline: 'none',
+                background: 'transparent'
+              }}
+            />
+            {unit ? (
+              <span
+                className="font-mono"
+                style={{
+                  fontSize: 'var(--font-size-2xs)',
+                  fontWeight: 'var(--font-weight-medium)',
+                  padding: '2px 6px',
+                  borderRadius: 'var(--radius-xs)',
+                  backgroundColor: 'var(--color-bg-surface)',
+                  color: 'var(--color-text-secondary)',
+                  border: '1px solid var(--color-border-subtle)',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0
+                }}
+              >
+                {getCompactUnitDisplay(unit)}
+              </span>
+            ) : null}
+          </div>
+
+          {formattedCombined && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: 'var(--font-size-2xs)',
+                color: 'var(--color-text-secondary)',
+                padding: '2px 4px'
+              }}
+            >
+              <span style={{ fontWeight: 'var(--font-weight-semibold)', color: categoryColor }}>GUM:</span>
+              <span className="font-mono">
+                {formattedCombined} {unit}
+              </span>
+              {relativeUncertaintyPercent !== undefined && (
+                <span style={{ color: 'var(--color-text-muted)' }}>
+                  ({relativeUncertaintyPercent}% rel)
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {description && (
         <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--color-text-muted)' }}>

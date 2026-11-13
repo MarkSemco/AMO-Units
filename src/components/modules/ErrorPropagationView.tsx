@@ -64,18 +64,34 @@ export const ErrorPropagationView: React.FC = () => {
   const [correlationMap, setCorrelationMap] = useState<Record<string, number>>({});
   const [draftCorrelations, setDraftCorrelations] = useState<Record<string, string>>({});
 
+  // Disabled constants (constant name -> boolean, true = treated as variable, false/undefined = treated as constant)
+  const [disabledConstants, setDisabledConstants] = useState<Record<string, boolean>>({});
+
   // Parse expression
   const parseResult = useMemo(() => {
     return parseExpression(formulaInput);
   }, [formulaInput]);
 
-  // Detected variables
-  const detectedVariables = parseResult.detectedVariables;
+  // Effective variables: union of detectedVariables and constants toggled to be treated as user variables
+  const effectiveVariables = useMemo(() => {
+    const vars = [...parseResult.detectedVariables];
+    for (const c of parseResult.detectedConstants) {
+      if (disabledConstants[c]) {
+        vars.push(c);
+      }
+    }
+    return Array.from(new Set(vars)).sort();
+  }, [parseResult.detectedVariables, parseResult.detectedConstants, disabledConstants]);
 
   // Active uncertain variables
   const uncertainVars = useMemo(() => {
-    return detectedVariables.filter(v => uncertaintyFlags[v] !== false);
-  }, [detectedVariables, uncertaintyFlags]);
+    return effectiveVariables.filter(v => uncertaintyFlags[v] !== false);
+  }, [effectiveVariables, uncertaintyFlags]);
+
+  // List of constants disabled from being physical constants (to pass to evaluator)
+  const disabledConstantsList = useMemo(() => {
+    return parseResult.detectedConstants.filter(c => disabledConstants[c]);
+  }, [parseResult.detectedConstants, disabledConstants]);
 
   // Compute analytical partial derivatives
   const analyticalPartials = useMemo(() => {
@@ -125,13 +141,13 @@ export const ErrorPropagationView: React.FC = () => {
     }
 
     const numericVals: Record<string, number> = {};
-    for (const v of detectedVariables) {
-      const parsed = parseFloat(variableValues[v] ?? '0');
-      numericVals[v] = isNaN(parsed) ? 0 : parsed;
+    for (const v of effectiveVariables) {
+      const parsed = parseFloat(variableValues[v] ?? '1');
+      numericVals[v] = isNaN(parsed) ? 1 : parsed;
     }
 
     const numericUncs: Record<string, number> = {};
-    for (const v of detectedVariables) {
+    for (const v of effectiveVariables) {
       const parsed = parseFloat(variableUncertainties[v] ?? '0');
       numericUncs[v] = isNaN(parsed) ? 0 : parsed;
     }
@@ -143,18 +159,60 @@ export const ErrorPropagationView: React.FC = () => {
       derivatives: analyticalPartials,
       secondDerivatives: analyticalSecondPartials,
       covarianceEnabled,
-      correlations
+      correlations,
+      disabledConstants: disabledConstantsList
     });
   }, [
     parseResult,
-    detectedVariables,
+    effectiveVariables,
     variableValues,
     variableUncertainties,
     analyticalPartials,
     analyticalSecondPartials,
     covarianceEnabled,
-    correlations
+    correlations,
+    disabledConstantsList
   ]);
+
+  const toggleConstantTreatAsVariable = (constantName: string) => {
+    const willTreatAsVariable = !disabledConstants[constantName];
+    setDisabledConstants(prev => ({
+      ...prev,
+      [constantName]: willTreatAsVariable
+    }));
+
+    if (willTreatAsVariable) {
+      setVariableValues(prev => {
+        if (prev[constantName] === undefined) {
+          return { ...prev, [constantName]: '1' };
+        }
+        return prev;
+      });
+      setVariableUncertainties(prev => {
+        if (prev[constantName] === undefined) {
+          return { ...prev, [constantName]: '0.1' };
+        }
+        return prev;
+      });
+      setUncertaintyFlags(prev => {
+        if (prev[constantName] === undefined) {
+          return { ...prev, [constantName]: true };
+        }
+        return prev;
+      });
+    }
+
+    recordAction({
+      description: `Toggle ${constantName}: ${willTreatAsVariable ? 'treat as variable' : 'treat as constant'}`,
+      category: 'error-prop',
+      undo: () => {
+        setDisabledConstants(prev => ({ ...prev, [constantName]: !willTreatAsVariable }));
+      },
+      redo: () => {
+        setDisabledConstants(prev => ({ ...prev, [constantName]: willTreatAsVariable }));
+      }
+    });
+  };
 
   const toggleVariableUncertainty = (varName: string) => {
     const nextVal = uncertaintyFlags[varName] === false ? true : false;
@@ -226,7 +284,6 @@ export const ErrorPropagationView: React.FC = () => {
       {/* 1. Formula Input & Variable Detection */}
       <Card
         title="Symbolic Error Propagation Equation Generator"
-        subtitle="Analytical partial derivatives and combined standard uncertainty (ISO GUM)."
         category="error-prop"
         icon={<Sigma size={20} />}
       >
@@ -341,8 +398,8 @@ export const ErrorPropagationView: React.FC = () => {
           )}
         </div>
 
-        {/* Detected Variables Checklist */}
-        {detectedVariables.length > 0 && (
+        {/* Detected Variables & Physical Constants Checklist */}
+        {(effectiveVariables.length > 0 || parseResult.detectedConstants.length > 0) && (
           <div
             style={{
               marginTop: 'var(--space-md)',
@@ -352,58 +409,62 @@ export const ErrorPropagationView: React.FC = () => {
               border: '1px solid var(--color-border-subtle)'
             }}
           >
-            <div
-              style={{
-                fontSize: 'var(--font-size-xs)',
-                color: 'var(--color-text-secondary)',
-                fontWeight: 'bold',
-                marginBottom: '8px'
-              }}
-            >
-              Auto-Detected Variables (Check to propagate uncertainty σ_i, uncheck for exact constants):
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-              {detectedVariables.map(varName => {
-                const isUncertain = uncertaintyFlags[varName] !== false;
-                return (
-                  <label
-                    key={varName}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '6px 12px',
-                      backgroundColor: isUncertain ? 'var(--color-error-prop-badge)' : 'var(--color-bg-surface)',
-                      border: `1px solid ${isUncertain ? 'var(--color-error-prop)' : 'var(--color-border-subtle)'}`,
-                      borderRadius: 'var(--radius-sm)',
-                      cursor: 'pointer',
-                      fontSize: 'var(--font-size-sm)',
-                      userSelect: 'none'
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isUncertain}
-                      onChange={() => toggleVariableUncertainty(varName)}
-                      style={{ cursor: 'pointer', accentColor: 'var(--color-error-prop)' }}
-                    />
-                    <span className="font-mono" style={{ fontWeight: 'bold' }}>
-                      {varName}
-                    </span>
-                    <span style={{ fontSize: 'var(--font-size-2xs)', color: isUncertain ? 'var(--color-error-prop)' : 'var(--color-text-muted)' }}>
-                      {isUncertain ? '(has error σ)' : '(exact)'}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
+            {effectiveVariables.length > 0 && (
+              <>
+                <div
+                  style={{
+                    fontSize: 'var(--font-size-xs)',
+                    color: 'var(--color-text-secondary)',
+                    fontWeight: 'bold',
+                    marginBottom: '8px'
+                  }}
+                >
+                  Auto-Detected Variables (Check to propagate uncertainty σ_i, uncheck for exact constants):
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                  {effectiveVariables.map(varName => {
+                    const isUncertain = uncertaintyFlags[varName] !== false;
+                    return (
+                      <label
+                        key={varName}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '6px 12px',
+                          backgroundColor: isUncertain ? 'var(--color-error-prop-badge)' : 'var(--color-bg-surface)',
+                          border: `1px solid ${isUncertain ? 'var(--color-error-prop)' : 'var(--color-border-subtle)'}`,
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer',
+                          fontSize: 'var(--font-size-sm)',
+                          userSelect: 'none'
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isUncertain}
+                          onChange={() => toggleVariableUncertainty(varName)}
+                          style={{ cursor: 'pointer', accentColor: 'var(--color-error-prop)' }}
+                        />
+                        <span className="font-mono" style={{ fontWeight: 'bold' }}>
+                          {varName}
+                        </span>
+                        <span style={{ fontSize: 'var(--font-size-2xs)', color: isUncertain ? 'var(--color-error-prop)' : 'var(--color-text-muted)' }}>
+                          {isUncertain ? '(has error σ)' : '(exact)'}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </>
+            )}
 
             {parseResult.detectedConstants.length > 0 && (
               <div
                 style={{
-                  marginTop: '12px',
-                  paddingTop: '8px',
-                  borderTop: '1px solid var(--color-border-subtle)',
+                  marginTop: effectiveVariables.length > 0 ? '12px' : '0',
+                  paddingTop: effectiveVariables.length > 0 ? '8px' : '0',
+                  borderTop: effectiveVariables.length > 0 ? '1px solid var(--color-border-subtle)' : 'none',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
@@ -415,23 +476,56 @@ export const ErrorPropagationView: React.FC = () => {
                   Auto-Detected Physical/Math Constants:
                 </span>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {parseResult.detectedConstants.map(c => (
-                    <span
-                      key={c}
-                      className="font-mono"
-                      style={{
-                        padding: '2px 8px',
-                        borderRadius: 'var(--radius-xs)',
-                        backgroundColor: 'var(--color-optical-badge)',
-                        color: 'var(--color-optical)',
-                        border: '1px solid var(--color-border-subtle)',
-                        fontSize: '11px',
-                        fontWeight: 'semibold'
-                      }}
-                    >
-                      {c} (CODATA exact)
-                    </span>
-                  ))}
+                  {parseResult.detectedConstants.map(c => {
+                    const isTreatedAsConstant = !disabledConstants[c];
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => toggleConstantTreatAsVariable(c)}
+                        aria-pressed={isTreatedAsConstant}
+                        aria-label={`Constant ${c}: ${
+                          isTreatedAsConstant
+                            ? 'active constant (click to treat as variable)'
+                            : 'treated as user variable (click to restore as constant)'
+                        }`}
+                        title={
+                          isTreatedAsConstant
+                            ? `${c}: Active constant. Click to treat as user variable with uncertainty.`
+                            : `${c}: Treated as user variable. Click to restore as physical constant.`
+                        }
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '3px 10px',
+                          borderRadius: 'var(--radius-xs)',
+                          backgroundColor: isTreatedAsConstant ? 'var(--color-optical-badge)' : 'var(--color-bg-surface)',
+                          color: isTreatedAsConstant ? 'var(--color-optical)' : 'var(--color-text-secondary)',
+                          border: `1px solid ${isTreatedAsConstant ? 'var(--color-optical)' : 'var(--color-border-subtle)'}`,
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          transition: 'all var(--transition-fast)'
+                        }}
+                      >
+                        <span
+                          className="font-mono"
+                          style={{
+                            textDecoration: isTreatedAsConstant ? 'none' : 'line-through',
+                            opacity: isTreatedAsConstant ? 1 : 0.7
+                          }}
+                        >
+                          {c}
+                        </span>
+                        {!isTreatedAsConstant && (
+                          <span style={{ fontSize: '10px', color: 'var(--color-error-prop)', fontWeight: 'normal' }}>
+                            (as variable)
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -534,7 +628,7 @@ export const ErrorPropagationView: React.FC = () => {
                 }}
               >
                 <div style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--color-text-muted)', marginBottom: '4px' }}>
-                  2nd-Order Induced Expectation Bias Shift E[f] (ISO GUM Supplement 1):
+                  2nd-Order Induced Expectation Bias Shift E[f]:
                 </div>
                 <MathView
                   math={substitutePartials ? latexBundle.biasFormulaAnalyticalLatex : latexBundle.biasFormulaSymbolicLatex}
@@ -604,7 +698,7 @@ export const ErrorPropagationView: React.FC = () => {
                     onChange={e => handleToggleIncludeSecondOrder(e.target.checked)}
                     style={{ cursor: 'pointer', accentColor: 'var(--color-error-prop)' }}
                   />
-                  <span style={{ fontWeight: 500 }}>Include 2nd-order (GUM S1)</span>
+                  <span style={{ fontWeight: 500 }}>Include 2nd-order corrections</span>
                 </label>
               </div>
             </div>
@@ -757,7 +851,6 @@ export const ErrorPropagationView: React.FC = () => {
       {parseResult.isValid && evaluation && (
         <Card
           title="Numerical Uncertainty Evaluation"
-          subtitle="Combined standard uncertainty and variable sensitivity budget for f(x₁, x₂, ...)."
           category="error-prop"
           icon={<Sigma size={20} />}
           actions={
@@ -802,7 +895,7 @@ export const ErrorPropagationView: React.FC = () => {
               />
               <div>
                 <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                  Include 2nd-order curvature corrections (ISO GUM Supplement 1)
+                  Include 2nd-order curvature corrections
                 </div>
                 <div style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
                   Evaluates expectation bias shift Δ_bias = 0.5 Σ (∂²f/∂x_i² · σ_i²) and non-linear variance term 0.5 Σ (∂²f/∂x_i² · σ_i²)²
@@ -864,7 +957,7 @@ export const ErrorPropagationView: React.FC = () => {
                     )}
                   </div>
                   <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-primary)', lineHeight: 1.5 }}>
-                    At this operating point, first-order partial derivatives vanish (<strong>σ_linear ≈ 0</strong>), causing standard linear error propagation to falsely underestimate or report zero measurement uncertainty. Second-order curvature dominates! Under ISO GUM Supplement 1, curvature induces a significant bias shift and uncertainty.
+                    At this operating point, first-order partial derivatives vanish (<strong>σ_linear ≈ 0</strong>), causing standard linear error propagation to falsely underestimate or report zero measurement uncertainty. Second-order curvature dominates! Curvature induces a significant bias shift and uncertainty.
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-bg-base)', padding: '8px 12px', borderRadius: 'var(--radius-xs)' }}>
                     <span>Nonlinearity Index: <strong className="font-mono" style={{ color: 'var(--color-error)' }}>η_nl = ∞ (Degenerate Linear)</strong></span>
@@ -913,7 +1006,7 @@ export const ErrorPropagationView: React.FC = () => {
                     )}
                   </div>
                   <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-primary)', lineHeight: 1.5 }}>
-                    The dimensionless nonlinearity index <strong>η_nl = {(evaluation.nonlinearityIndex * 100).toFixed(1)}%</strong> exceeds the 15% threshold defined by ISO GUM Supplement 1. High curvature induces an expectation bias shift of Δ_bias = {evaluation.biasShift.toPrecision(5)}, and the linear Taylor series understates measurement uncertainty.
+                    The dimensionless nonlinearity index <strong>η_nl = {(evaluation.nonlinearityIndex * 100).toFixed(1)}%</strong> exceeds the 15% nonlinearity threshold. High curvature induces an expectation bias shift of Δ_bias = {evaluation.biasShift.toPrecision(5)}, and the linear Taylor series understates measurement uncertainty.
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)', backgroundColor: 'var(--color-bg-base)', padding: '8px 12px', borderRadius: 'var(--radius-xs)' }}>
                     <span>Nonlinearity Index: <strong className="font-mono" style={{ color: 'var(--color-warning)' }}>{(evaluation.nonlinearityIndex * 100).toFixed(1)}% (&gt;15%)</strong></span>
@@ -1004,7 +1097,7 @@ export const ErrorPropagationView: React.FC = () => {
               marginBottom: 'var(--space-md)'
             }}
           >
-            {detectedVariables.map(varName => {
+            {effectiveVariables.map(varName => {
               const isUncertain = uncertaintyFlags[varName] !== false;
               const val = variableValues[varName] ?? '';
               const unc = variableUncertainties[varName] ?? '';

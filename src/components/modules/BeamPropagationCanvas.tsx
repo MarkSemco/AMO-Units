@@ -341,6 +341,15 @@ export const BeamPropagationCanvas: React.FC<BeamPropagationCanvasProps> = ({
   const dragStartElementsRef = useRef<OpticalElement[] | null>(null);
   const dragStartCaliperRef = useRef<number | null>(null);
 
+  // Prevent accidental document text selection during active optical element / caliper dragging
+  useEffect(() => {
+    if (!draggedItem) return;
+    document.body.classList.add('is-sim-dragging');
+    return () => {
+      document.body.classList.remove('is-sim-dragging');
+    };
+  }, [draggedItem]);
+
   // Pointer drag handler using svgRef for capture and release
   const handlePointerDown = (
     e: React.PointerEvent<SVGElement>,
@@ -348,8 +357,16 @@ export const BeamPropagationCanvas: React.FC<BeamPropagationCanvasProps> = ({
     id?: string
   ) => {
     e.stopPropagation();
+    e.preventDefault();
+    if (typeof window !== 'undefined' && window.getSelection) {
+      window.getSelection()?.removeAllRanges();
+    }
     if (svgRef.current) {
-      svgRef.current.setPointerCapture(e.pointerId);
+      try {
+        svgRef.current.setPointerCapture(e.pointerId);
+      } catch {
+        // Ignored if pointer capture unsupported
+      }
     }
     if (type === 'element' && id) {
       dragStartElementsRef.current = elements.map(el => ({ ...el }));
@@ -378,7 +395,11 @@ export const BeamPropagationCanvas: React.FC<BeamPropagationCanvasProps> = ({
   };
 
   const handlePointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (svgRef.current && svgRef.current.hasPointerCapture(e.pointerId)) {
+    if (
+      svgRef.current &&
+      typeof svgRef.current.hasPointerCapture === 'function' &&
+      svgRef.current.hasPointerCapture(e.pointerId)
+    ) {
       try {
         svgRef.current.releasePointerCapture(e.pointerId);
       } catch {
@@ -1140,13 +1161,19 @@ export const BeamPropagationCanvas: React.FC<BeamPropagationCanvasProps> = ({
 
       {/* Main SVG Optical Bench Canvas */}
       <div
+        className="simulator-canvas"
+        onMouseDown={e => {
+          if (e.button === 0) e.preventDefault();
+        }}
         style={{
           position: 'relative',
           backgroundColor: 'var(--color-bg-base)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--color-border-subtle)',
           overflow: 'hidden',
-          padding: '12px 8px 8px 8px'
+          padding: '12px 8px 8px 8px',
+          userSelect: 'none',
+          WebkitUserSelect: 'none'
         }}
       >
         <svg
@@ -1157,6 +1184,7 @@ export const BeamPropagationCanvas: React.FC<BeamPropagationCanvasProps> = ({
             height: 'auto',
             display: 'block',
             userSelect: 'none',
+            WebkitUserSelect: 'none',
             touchAction: 'none'
           }}
           onPointerMove={handlePointerMove}

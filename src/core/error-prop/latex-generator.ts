@@ -16,14 +16,21 @@ export interface LatexEquationBundle {
 const GREEK_NAMES = new Set([
   'alpha', 'beta', 'gamma', 'Gamma', 'delta', 'Delta', 'epsilon', 'zeta', 'eta',
   'theta', 'Theta', 'iota', 'kappa', 'lambda', 'Lambda', 'mu', 'nu', 'xi', 'Xi',
-  'rho', 'sigma', 'Sigma', 'tau', 'upsilon', 'Upsilon', 'phi', 'Phi', 'chi', 'psi', 'Psi', 'omega', 'Omega'
+  'pi', 'Pi', 'rho', 'sigma', 'Sigma', 'tau', 'upsilon', 'Upsilon', 'phi', 'Phi', 'chi', 'psi', 'Psi', 'omega', 'Omega'
 ]);
 
 /**
- * Format LaTeX representation of a variable symbol, converting e.g. "w0" -> "w_{0}", "x1" -> "x_{1}", "Gamma" -> "\Gamma"
+ * Format LaTeX representation of a variable symbol, converting e.g. "w0" -> "w_{0}", "x1" -> "x_{1}", "Gamma" -> "\Gamma", "hbar" -> "\hbar"
  */
 export function formatVariableSymbolLatex(varName: string): string {
-  // If variable has digits at end, e.g. w0 -> w_0, x1 -> x_1, s0 -> s_0
+  if (varName === 'hbar') return '\\hbar';
+  if (varName === 'kB') return 'k_{B}';
+  if (varName === 'muB') return '\\mu_{B}';
+  if (varName === 'muN') return '\\mu_{N}';
+  if (varName === 'e_charge') return 'e';
+  if (varName === 'pi' || varName === 'Pi') return '\\pi';
+
+  // If variable has digits at end, e.g. w0 -> w_0, x1 -> x_1, s0 -> s_0, epsilon0 -> \epsilon_{0}
   const match = varName.match(/^([a-zA-Z]+)(\d+)$/);
   if (match) {
     const base = match[1];
@@ -38,10 +45,18 @@ export function formatVariableSymbolLatex(varName: string): string {
 }
 
 /**
- * Custom mathjs toTex handler to ensure consistent LaTeX rendering of logarithmic functions:
+ * Custom mathjs toTex handler to ensure consistent LaTeX rendering of logarithmic functions,
+ * physical constants, and structured variable symbols:
  * - ln(x) -> \ln\left(x\right)
  * - log(x, 10) / log10(x) / log(x) -> \log_{10}\left(x\right)
  * - log(x, N) / log<N>(x) -> \log_{N}\left(x\right)
+ * - hbar -> \hbar (symbol \hbar)
+ * - kB -> k_{B}
+ * - muB -> \mu_{B}
+ * - muN -> \mu_{N}
+ * - e_charge -> e
+ * - pi -> \pi
+ * - symbols with trailing numbers (e.g. w0, epsilon0, mu0, a0) -> base_{sub}
  */
 export function customLatexHandler(node: any, options?: any): string | undefined {
   if (node && node.isFunctionNode) {
@@ -62,6 +77,28 @@ export function customLatexHandler(node: any, options?: any): string | undefined
       return `\\log_{${match[1]}}\\left(${node.args[0].toTex(options)}\\right)`;
     }
   }
+
+  if (node && node.isSymbolNode) {
+    const name = node.name;
+    if (name === 'hbar') return '\\hbar';
+    if (name === 'kB') return 'k_{B}';
+    if (name === 'muB') return '\\mu_{B}';
+    if (name === 'muN') return '\\mu_{N}';
+    if (name === 'e_charge') return 'e';
+    if (name === 'pi' || name === 'Pi') return '\\pi';
+
+    const match = typeof name === 'string' ? name.match(/^([a-zA-Z]+)(\d+)$/) : null;
+    if (match) {
+      const base = match[1];
+      const sub = match[2];
+      const baseTex = GREEK_NAMES.has(base) ? `\\${base}` : base;
+      return `${baseTex}_{${sub}}`;
+    }
+    if (typeof name === 'string' && GREEK_NAMES.has(name)) {
+      return `\\${name}`;
+    }
+  }
+
   return undefined;
 }
 

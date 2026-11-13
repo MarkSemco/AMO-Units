@@ -10,7 +10,6 @@ export const PolarizationConventionCard: React.FC = () => {
   return (
     <Card
       title="AMO Physics Handedness & Phase Convention"
-      subtitle="Standard definitions for laser propagation, right-hand rule helicity, and Poincaré sphere mapping."
       category="laser"
       icon={<Compass size={20} />}
       collapsible={true}

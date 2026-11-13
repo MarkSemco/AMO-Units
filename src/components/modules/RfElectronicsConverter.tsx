@@ -331,7 +331,6 @@ export const RfElectronicsConverter: React.FC = () => {
       {/* 1. RF Power & Voltage Synchronized Grid */}
       <Card
         title="RF Power & Voltage Converter"
-        subtitle="Convert between dBm, Watts, V_RMS, and V_pp for a given system impedance."
         category="rf"
         icon={<Radio size={20} />}
         actions={
@@ -911,7 +910,6 @@ export const RfElectronicsConverter: React.FC = () => {
       {/* 4. Complex Impedance, Smith Chart & L-C Matcher Section */}
       <Card
         title="Complex Impedance, Smith Chart & Reactive Load Analyzer"
-        subtitle="Reflection coefficient Γ, power delivery, and matching network for load impedance Z_L."
         category="rf"
         icon={<Compass size={20} />}
         actions={

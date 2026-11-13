@@ -3,7 +3,7 @@
  */
 
 /**
- * Format a number to a specified number of significant digits (4 to 10),
+ * Format a number to a specified number of significant digits (1 to 14),
  * switching cleanly between decimal and scientific notation.
  */
 export function formatSignificantDigits(
@@ -28,7 +28,7 @@ export function formatSignificantDigits(
     return value > 0 ? '∞' : '-∞';
   }
 
-  const clampedSigFigs = Math.max(3, Math.min(12, sigFigs));
+  const clampedSigFigs = Math.max(1, Math.min(14, Math.round(sigFigs)));
   const absVal = Math.abs(value);
 
   const threshSmall = options?.scientificThresholdSmall ?? 1e-4;

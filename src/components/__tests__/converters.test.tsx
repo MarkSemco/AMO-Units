@@ -98,6 +98,166 @@ describe('OpticalConverter AlCl Defaults and Reset', () => {
   });
 });
 
+describe('OpticalConverter Uncertainty Propagation Toggle & Conversion', () => {
+  it('is off by default and does not render uncertainty input fields', () => {
+    render(
+      <TestWrapper>
+        <OpticalConverter />
+      </TestWrapper>
+    );
+
+    // Toggle button should indicate OFF
+    const toggleButton = screen.getByRole('button', { name: /Uncertainties: OFF/i });
+    expect(toggleButton).toBeInTheDocument();
+    expect(toggleButton).toHaveAttribute('aria-pressed', 'false');
+
+    // Uncertainty input and banner should not be in document
+    expect(screen.queryByLabelText(/Wavelength uncertainty in nm/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Uncertainty Propagation Active/i)).not.toBeInTheDocument();
+  });
+
+  it('toggles on and reveals uncertainty inputs across all representations and active banner', () => {
+    render(
+      <TestWrapper>
+        <OpticalConverter />
+      </TestWrapper>
+    );
+
+    const toggleButton = screen.getByRole('button', { name: /Uncertainties: OFF/i });
+    fireEvent.click(toggleButton);
+
+    // Toggle button updates to ON
+    expect(screen.getByRole('button', { name: /Uncertainties: ON/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Uncertainties: ON/i })).toHaveAttribute('aria-pressed', 'true');
+
+    // Uncertainty banner is not displayed (clean UI)
+    expect(screen.queryByText(/Uncertainty Propagation Active/i)).not.toBeInTheDocument();
+
+    // All 6 quantity uncertainty fields are accessible
+    expect(screen.getByLabelText(/Wavelength uncertainty in nm/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Frequency uncertainty in THz/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Angular Frequency uncertainty in rad\/s/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Photon Energy uncertainty in eV/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Wavenumber uncertainty in cm\^-1/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Equivalent Temperature uncertainty in K/i)).toBeInTheDocument();
+  });
+
+  it('propagates uncertainty entered in wavelength to all other representations in real time', () => {
+    render(
+      <TestWrapper>
+        <OpticalConverter />
+      </TestWrapper>
+    );
+
+    // Enable uncertainty
+    fireEvent.click(screen.getByRole('button', { name: /Uncertainties: OFF/i }));
+
+    const uncWavelength = screen.getByLabelText(/Wavelength uncertainty in nm/i) as HTMLInputElement;
+    expect(uncWavelength.value).toBe('');
+
+    // Enter uncertainty 0.005 nm (at 261.5 nm)
+    fireEvent.change(uncWavelength, { target: { value: '0.005' } });
+    expect(uncWavelength.value).toBe('0.005');
+
+    // Frequency uncertainty should be updated (> 0)
+    const uncFreq = screen.getByLabelText(/Frequency uncertainty in THz/i) as HTMLInputElement;
+    expect(parseFloat(uncFreq.value)).toBeGreaterThan(0);
+
+    // Energy uncertainty should be updated (> 0)
+    const uncEnergy = screen.getByLabelText(/Photon Energy uncertainty in eV/i) as HTMLInputElement;
+    expect(parseFloat(uncEnergy.value)).toBeGreaterThan(0);
+
+    // Relative uncertainty should be approximately 0.005 / 261.5 = ~0.00191% (~19.12 ppm) in the single header pill
+    expect(screen.getByText(/Rel:/i)).toBeInTheDocument();
+    expect(screen.getByText(/ppm/i)).toBeInTheDocument();
+  });
+
+  it('converts uncertainty values dynamically when changing field units', () => {
+    render(
+      <TestWrapper>
+        <OpticalConverter />
+      </TestWrapper>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Uncertainties: OFF/i }));
+
+    const uncWavelength = screen.getByLabelText(/Wavelength uncertainty in nm/i) as HTMLInputElement;
+    fireEvent.change(uncWavelength, { target: { value: '0.005' } });
+
+    // Switch wavelength unit from nm to um
+    const unitSelect = screen.getByRole('combobox', { name: /Select unit for Wavelength/i });
+    fireEvent.change(unitSelect, { target: { value: 'um' } });
+
+    // In um: 0.005 nm = 5.00000e-6 um (< 1e-4 threshold switches to scientific notation)
+    const uncWavelengthUm = screen.getByLabelText(/Wavelength uncertainty in um/i) as HTMLInputElement;
+    expect(uncWavelengthUm.value).toBe('5.00000e-6');
+  });
+
+  it('propagates uncertainty entered in frequency to wavelength and other fields', () => {
+    render(
+      <TestWrapper>
+        <OpticalConverter />
+      </TestWrapper>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Uncertainties: OFF/i }));
+
+    // Switch frequency unit to GHz
+    const freqUnitSelect = screen.getByRole('combobox', { name: /Select unit for Frequency/i });
+    fireEvent.change(freqUnitSelect, { target: { value: 'GHz' } });
+
+    // Set frequency uncertainty to 10 GHz
+    const uncFreqGhz = screen.getByLabelText(/Frequency uncertainty in GHz/i) as HTMLInputElement;
+    fireEvent.change(uncFreqGhz, { target: { value: '10' } });
+
+    // Wavelength uncertainty should be updated
+    const uncWavelength = screen.getByLabelText(/Wavelength uncertainty in nm/i) as HTMLInputElement;
+    expect(parseFloat(uncWavelength.value)).toBeGreaterThan(0);
+  });
+
+  it('resets uncertainties on Reset button click', () => {
+    render(
+      <TestWrapper>
+        <OpticalConverter />
+      </TestWrapper>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Uncertainties: OFF/i }));
+
+    const uncWavelength = screen.getByLabelText(/Wavelength uncertainty in nm/i) as HTMLInputElement;
+    fireEvent.change(uncWavelength, { target: { value: '0.02' } });
+    expect(uncWavelength.value).toBe('0.02');
+
+    // Click Reset
+    const resetButton = screen.getByRole('button', { name: /Reset to AlCl/i });
+    fireEvent.click(resetButton);
+
+    // Uncertainty input should be reset (empty / 0)
+    expect(uncWavelength.value).toBe('');
+    expect(screen.queryByText(/Rel:/i)).not.toBeInTheDocument();
+  });
+
+  it('hides uncertainty inputs when toggled off while keeping nominal values intact', () => {
+    render(
+      <TestWrapper>
+        <OpticalConverter />
+      </TestWrapper>
+    );
+
+    // Turn ON
+    const toggleBtn = screen.getByRole('button', { name: /Uncertainties: OFF/i });
+    fireEvent.click(toggleBtn);
+    expect(screen.getByLabelText(/Wavelength uncertainty in nm/i)).toBeInTheDocument();
+
+    // Turn OFF
+    fireEvent.click(screen.getByRole('button', { name: /Uncertainties: ON/i }));
+    expect(screen.queryByLabelText(/Wavelength uncertainty in nm/i)).not.toBeInTheDocument();
+
+    // Nominal value is still 261.5 nm
+    expect(screen.getByLabelText(/Wavelength in nm/i)).toHaveValue('261.5');
+  });
+});
+
 describe('LaserBeamConverter AlCl Defaults and Scaling', () => {
   it('initializes with AlCl parameters (261.5 nm, w0 = 100 µm, P = 10 mW)', () => {
     render(

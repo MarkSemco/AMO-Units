@@ -139,7 +139,6 @@ export const LaserBeamConverter: React.FC = () => {
       <div style={{ display: viewMode === 'abcd' ? 'block' : 'none' }}>
         <Card
           title="ABCD Matrix Gaussian Beam Simulator"
-          subtitle="Paraxial Gaussian beam propagation (1/e² intensity / 1/e field convention) through optical elements, focal waists, and field intensity analyzer."
           category="laser"
           icon={<Sliders size={20} />}
           actions={

@@ -108,11 +108,6 @@ export const PolarizationEllipseVisualizer: React.FC<PolarizationEllipseVisualiz
   return (
     <Card
       title={viewMode === '2d' ? 'Transverse Electric Field Ellipse' : '3D Propagating Wave'}
-      subtitle={
-        viewMode === '2d'
-          ? 'Rotating electric field vector E⃗(t) in the transverse plane looking along +z.'
-          : 'Propagating beam along +z with orthogonal Ex and Ey components.'
-      }
       category="laser"
       icon={<Activity size={20} />}
       collapsible={true}
@@ -208,6 +203,10 @@ export const PolarizationEllipseVisualizer: React.FC<PolarizationEllipseVisualiz
 
           {/* 2D Canvas Display Container */}
           <div
+            className="simulator-canvas"
+            onMouseDown={e => {
+              if (e.button === 0) e.preventDefault();
+            }}
             style={{
               position: 'relative',
               width: '100%',
@@ -218,10 +217,17 @@ export const PolarizationEllipseVisualizer: React.FC<PolarizationEllipseVisualiz
               border: '1px solid var(--color-border-subtle)',
               overflow: 'hidden',
               padding: '12px',
-              touchAction: 'none'
+              touchAction: 'none',
+              userSelect: 'none',
+              WebkitUserSelect: 'none'
             }}
           >
-            <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+            <svg
+              width={width}
+              height={height}
+              viewBox={`0 0 ${width} ${height}`}
+              style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+            >
               {/* Background Grid & Axes */}
               <circle cx={cx} cy={cy} r={maxRadius * 0.5} fill="none" stroke="var(--color-border-subtle)" strokeDasharray="3 3" opacity="0.4" />
               <circle cx={cx} cy={cy} r={maxRadius} fill="none" stroke="var(--color-border-subtle)" strokeDasharray="3 3" opacity="0.4" />

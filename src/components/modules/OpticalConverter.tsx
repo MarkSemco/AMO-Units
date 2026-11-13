@@ -6,12 +6,19 @@ import { Lightbulb, RotateCcw } from 'lucide-react';
 import { CODATA_2022 } from '../../constants/codata2022';
 import {
   deriveOpticalQuantities,
+  deriveOpticalUncertainties,
   energyFromWavelength,
   energyFromFrequency,
   energyFromAngularFrequency,
   energyFromElectronVolts,
   energyFromWavenumber,
-  energyFromTemperature
+  energyFromTemperature,
+  energyUncertaintyFromWavelength,
+  energyUncertaintyFromFrequency,
+  energyUncertaintyFromAngularFrequency,
+  energyUncertaintyFromElectronVolts,
+  energyUncertaintyFromWavenumber,
+  energyUncertaintyFromTemperature
 } from '../../core/optical';
 import { formatSignificantDigits } from '../../core/formatters';
 import { useSettings } from '../../context/SettingsContext';
@@ -25,6 +32,9 @@ export const OpticalConverter: React.FC = () => {
   const { addEntry } = useHistory();
   const { recordAction } = useUndoRedo();
 
+  // Toggle for uncertainty propagation (off by default)
+  const [showUncertainties, setShowUncertainties] = useState<boolean>(false);
+
   // Initial canonical energy corresponding to active preset (default AlCl 261.5 nm)
   const activeWavelengthNm = appliedPreset?.wavelengthNm ?? 261.5;
   const activeSpeciesName = appliedPreset?.species || appliedPreset?.name || 'AlCl';
@@ -33,7 +43,10 @@ export const OpticalConverter: React.FC = () => {
   const [energyJoules, setEnergyJoules] = useState<number>(() =>
     energyFromWavelength(activeWavelengthNm * 1e-9)
   );
+  const [energyUncertaintyJoules, setEnergyUncertaintyJoules] = useState<number>(0);
+
   const focusEnergyRef = useRef<number>(energyJoules);
+  const focusEnergyUncertaintyRef = useRef<number>(energyUncertaintyJoules);
 
   const [activeField, setActiveField] = useState<string | null>(null);
 
@@ -50,15 +63,17 @@ export const OpticalConverter: React.FC = () => {
     if (appliedPreset && appliedPreset.wavelengthNm) {
       const e = energyFromWavelength(appliedPreset.wavelengthNm * 1e-9);
       setEnergyJoules(e);
+      setEnergyUncertaintyJoules(0);
       setWavelengthUnit('nm');
       setActiveField(null);
     }
   }, [appliedPreset]);
 
-  // Derived quantities
+  // Derived quantities and uncertainties
   const quantities = deriveOpticalQuantities(energyJoules);
+  const uncertainties = deriveOpticalUncertainties(energyJoules, energyUncertaintyJoules);
 
-  // Handle active typing changes
+  // Handle active typing changes for nominal values
   const handleWavelengthChange = useCallback(
     (str: string) => {
       const val = parseFloat(str);
@@ -68,10 +83,18 @@ export const OpticalConverter: React.FC = () => {
       else if (wavelengthUnit === 'm') meters = val;
       else if (wavelengthUnit === 'angstrom') meters = val * 1e-10;
 
-      const e = energyFromWavelength(meters);
-      setEnergyJoules(e);
+      const nextE = energyFromWavelength(meters);
+      setEnergyJoules(nextE);
+
+      // Preserve relative uncertainty across nominal value transitions
+      setEnergyUncertaintyJoules(prevUnc => {
+        if (energyJoules > 0 && prevUnc > 0) {
+          return nextE * (prevUnc / energyJoules);
+        }
+        return prevUnc;
+      });
     },
-    [wavelengthUnit]
+    [wavelengthUnit, energyJoules]
   );
 
   const handleFrequencyChange = useCallback(
@@ -84,10 +107,17 @@ export const OpticalConverter: React.FC = () => {
       else if (freqUnit === 'kHz') hz = val * 1e3;
       else if (freqUnit === 'Hz') hz = val;
 
-      const e = energyFromFrequency(hz);
-      setEnergyJoules(e);
+      const nextE = energyFromFrequency(hz);
+      setEnergyJoules(nextE);
+
+      setEnergyUncertaintyJoules(prevUnc => {
+        if (energyJoules > 0 && prevUnc > 0) {
+          return nextE * (prevUnc / energyJoules);
+        }
+        return prevUnc;
+      });
     },
-    [freqUnit]
+    [freqUnit, energyJoules]
   );
 
   const handleAngularFreqChange = useCallback(
@@ -97,30 +127,43 @@ export const OpticalConverter: React.FC = () => {
       let rad = val;
       if (angularFreqUnit === 'Mrad/s') rad = val * 1e6;
       else if (angularFreqUnit === 'Grad/s') rad = val * 1e9;
-      const e = energyFromAngularFrequency(rad);
-      setEnergyJoules(e);
+      const nextE = energyFromAngularFrequency(rad);
+      setEnergyJoules(nextE);
+
+      setEnergyUncertaintyJoules(prevUnc => {
+        if (energyJoules > 0 && prevUnc > 0) {
+          return nextE * (prevUnc / energyJoules);
+        }
+        return prevUnc;
+      });
     },
-    [angularFreqUnit]
+    [angularFreqUnit, energyJoules]
   );
 
   const handleEnergyChange = useCallback(
     (str: string) => {
       const val = parseFloat(str);
       if (isNaN(val) || val <= 0) return;
-      if (energyUnit === 'J') {
-        setEnergyJoules(val);
-        return;
-      }
+      let nextE = val;
       if (energyUnit === 'Eh') {
-        setEnergyJoules(val * CODATA_2022.Eh);
-        return;
+        nextE = val * CODATA_2022.Eh;
+      } else if (energyUnit !== 'J') {
+        let ev = val;
+        if (energyUnit === 'meV') ev = val * 1e-3;
+        else if (energyUnit === 'ueV') ev = val * 1e-6;
+        nextE = energyFromElectronVolts(ev);
       }
-      let ev = val;
-      if (energyUnit === 'meV') ev = val * 1e-3;
-      else if (energyUnit === 'ueV') ev = val * 1e-6;
-      setEnergyJoules(energyFromElectronVolts(ev));
+
+      setEnergyJoules(nextE);
+
+      setEnergyUncertaintyJoules(prevUnc => {
+        if (energyJoules > 0 && prevUnc > 0) {
+          return nextE * (prevUnc / energyJoules);
+        }
+        return prevUnc;
+      });
     },
-    [energyUnit]
+    [energyUnit, energyJoules]
   );
 
   const handleWavenumberChange = useCallback(
@@ -128,9 +171,17 @@ export const OpticalConverter: React.FC = () => {
       const val = parseFloat(str);
       if (isNaN(val) || val <= 0) return;
       const cmInv = wavenumberUnit === 'm^-1' ? val / 100 : val;
-      setEnergyJoules(energyFromWavenumber(cmInv));
+      const nextE = energyFromWavenumber(cmInv);
+      setEnergyJoules(nextE);
+
+      setEnergyUncertaintyJoules(prevUnc => {
+        if (energyJoules > 0 && prevUnc > 0) {
+          return nextE * (prevUnc / energyJoules);
+        }
+        return prevUnc;
+      });
     },
-    [wavenumberUnit]
+    [wavenumberUnit, energyJoules]
   );
 
   const handleTempChange = useCallback(
@@ -141,24 +192,166 @@ export const OpticalConverter: React.FC = () => {
       if (tempUnit === 'mK') kelvin = val * 1e-3;
       else if (tempUnit === 'uK') kelvin = val * 1e-6;
       else if (tempUnit === 'nK') kelvin = val * 1e-9;
-      setEnergyJoules(energyFromTemperature(kelvin));
+      const nextE = energyFromTemperature(kelvin);
+      setEnergyJoules(nextE);
+
+      setEnergyUncertaintyJoules(prevUnc => {
+        if (energyJoules > 0 && prevUnc > 0) {
+          return nextE * (prevUnc / energyJoules);
+        }
+        return prevUnc;
+      });
+    },
+    [tempUnit, energyJoules]
+  );
+
+  // Handle active typing changes for uncertainty values
+  const handleWavelengthUncertaintyChange = useCallback(
+    (str: string) => {
+      const val = parseFloat(str);
+      if (isNaN(val) || val < 0) {
+        if (str.trim() === '') setEnergyUncertaintyJoules(0);
+        return;
+      }
+      let meters = val * 1e-9;
+      if (wavelengthUnit === 'um') meters = val * 1e-6;
+      else if (wavelengthUnit === 'm') meters = val;
+      else if (wavelengthUnit === 'angstrom') meters = val * 1e-10;
+
+      const currentLambdaMeters = quantities.wavelength.m;
+      if (currentLambdaMeters <= 0) return;
+      const nextUncE = energyUncertaintyFromWavelength(currentLambdaMeters, meters);
+      setEnergyUncertaintyJoules(nextUncE);
+    },
+    [wavelengthUnit, quantities.wavelength.m]
+  );
+
+  const handleFrequencyUncertaintyChange = useCallback(
+    (str: string) => {
+      const val = parseFloat(str);
+      if (isNaN(val) || val < 0) {
+        if (str.trim() === '') setEnergyUncertaintyJoules(0);
+        return;
+      }
+      let hz = val * 1e12; // THz default
+      if (freqUnit === 'GHz') hz = val * 1e9;
+      else if (freqUnit === 'MHz') hz = val * 1e6;
+      else if (freqUnit === 'kHz') hz = val * 1e3;
+      else if (freqUnit === 'Hz') hz = val;
+
+      const nextUncE = energyUncertaintyFromFrequency(hz);
+      setEnergyUncertaintyJoules(nextUncE);
+    },
+    [freqUnit]
+  );
+
+  const handleAngularFreqUncertaintyChange = useCallback(
+    (str: string) => {
+      const val = parseFloat(str);
+      if (isNaN(val) || val < 0) {
+        if (str.trim() === '') setEnergyUncertaintyJoules(0);
+        return;
+      }
+      let rad = val;
+      if (angularFreqUnit === 'Mrad/s') rad = val * 1e6;
+      else if (angularFreqUnit === 'Grad/s') rad = val * 1e9;
+
+      const nextUncE = energyUncertaintyFromAngularFrequency(rad);
+      setEnergyUncertaintyJoules(nextUncE);
+    },
+    [angularFreqUnit]
+  );
+
+  const handleEnergyUncertaintyChange = useCallback(
+    (str: string) => {
+      const val = parseFloat(str);
+      if (isNaN(val) || val < 0) {
+        if (str.trim() === '') setEnergyUncertaintyJoules(0);
+        return;
+      }
+      if (energyUnit === 'J') {
+        setEnergyUncertaintyJoules(val);
+        return;
+      }
+      if (energyUnit === 'Eh') {
+        setEnergyUncertaintyJoules(val * CODATA_2022.Eh);
+        return;
+      }
+      let ev = val;
+      if (energyUnit === 'meV') ev = val * 1e-3;
+      else if (energyUnit === 'ueV') ev = val * 1e-6;
+
+      const nextUncE = energyUncertaintyFromElectronVolts(ev);
+      setEnergyUncertaintyJoules(nextUncE);
+    },
+    [energyUnit]
+  );
+
+  const handleWavenumberUncertaintyChange = useCallback(
+    (str: string) => {
+      const val = parseFloat(str);
+      if (isNaN(val) || val < 0) {
+        if (str.trim() === '') setEnergyUncertaintyJoules(0);
+        return;
+      }
+      const cmInv = wavenumberUnit === 'm^-1' ? val / 100 : val;
+      const nextUncE = energyUncertaintyFromWavenumber(cmInv);
+      setEnergyUncertaintyJoules(nextUncE);
+    },
+    [wavenumberUnit]
+  );
+
+  const handleTempUncertaintyChange = useCallback(
+    (str: string) => {
+      const val = parseFloat(str);
+      if (isNaN(val) || val < 0) {
+        if (str.trim() === '') setEnergyUncertaintyJoules(0);
+        return;
+      }
+      let kelvin = val;
+      if (tempUnit === 'mK') kelvin = val * 1e-3;
+      else if (tempUnit === 'uK') kelvin = val * 1e-6;
+      else if (tempUnit === 'nK') kelvin = val * 1e-9;
+
+      const nextUncE = energyUncertaintyFromTemperature(kelvin);
+      setEnergyUncertaintyJoules(nextUncE);
     },
     [tempUnit]
   );
 
   // Helper to record history on field blur
   const recordHistory = (fieldName: string, displayVal: string, unitStr: string) => {
+    const hasUnc = showUncertainties && energyUncertaintyJoules > 0;
     addEntry({
       category: 'optical',
       title: 'Optical Conversion',
       sourceField: fieldName,
-      sourceValue: displayVal,
+      sourceValue: hasUnc
+        ? `${displayVal} ± ${formatSignificantDigits(
+            fieldName === 'Wavelength'
+              ? uncertainties.wavelength[wavelengthUnit]
+              : fieldName === 'Frequency'
+                ? uncertainties.frequency[freqUnit]
+                : fieldName === 'Photon Energy'
+                  ? uncertainties.energy[energyUnit]
+                  : uncertainties.wavenumber[wavenumberUnit === 'm^-1' ? 'mInv' : 'cmInv'],
+            precisionDigits
+          )}`
+        : displayVal,
       sourceUnit: unitStr,
       details: {
-        Wavelength: `${formatSignificantDigits(quantities.wavelength.nm, precisionDigits)} nm`,
-        Frequency: `${formatSignificantDigits(quantities.frequency.THz, precisionDigits)} THz`,
-        Energy: `${formatSignificantDigits(quantities.energy.eV, precisionDigits)} eV`,
-        Wavenumber: `${formatSignificantDigits(quantities.wavenumber.cmInv, precisionDigits)} cm⁻¹`
+        Wavelength: hasUnc
+          ? `${formatSignificantDigits(quantities.wavelength.nm, precisionDigits)} ± ${formatSignificantDigits(uncertainties.wavelength.nm, precisionDigits)} nm`
+          : `${formatSignificantDigits(quantities.wavelength.nm, precisionDigits)} nm`,
+        Frequency: hasUnc
+          ? `${formatSignificantDigits(quantities.frequency.THz, precisionDigits)} ± ${formatSignificantDigits(uncertainties.frequency.THz, precisionDigits)} THz`
+          : `${formatSignificantDigits(quantities.frequency.THz, precisionDigits)} THz`,
+        Energy: hasUnc
+          ? `${formatSignificantDigits(quantities.energy.eV, precisionDigits)} ± ${formatSignificantDigits(uncertainties.energy.eV, precisionDigits)} eV`
+          : `${formatSignificantDigits(quantities.energy.eV, precisionDigits)} eV`,
+        Wavenumber: hasUnc
+          ? `${formatSignificantDigits(quantities.wavenumber.cmInv, precisionDigits)} ± ${formatSignificantDigits(uncertainties.wavenumber.cmInv, precisionDigits)} cm⁻¹`
+          : `${formatSignificantDigits(quantities.wavenumber.cmInv, precisionDigits)} cm⁻¹`
       }
     });
     setActiveField(null);
@@ -179,7 +372,22 @@ export const OpticalConverter: React.FC = () => {
     }
   };
 
-  // Get current displayed values
+  const commitEnergyUncertainty = (fieldName: string) => {
+    const prevU = focusEnergyUncertaintyRef.current;
+    const nextU = energyUncertaintyJoules;
+    if (Math.abs(prevU - nextU) > 1e-45) {
+      recordAction({
+        description: `${fieldName} uncertainty to ${formatSignificantDigits(nextU, precisionDigits)} J`,
+        category: 'optical',
+        targetTab: 'optical',
+        undo: () => setEnergyUncertaintyJoules(prevU),
+        redo: () => setEnergyUncertaintyJoules(nextU)
+      });
+      focusEnergyUncertaintyRef.current = nextU;
+    }
+  };
+
+  // Get current displayed nominal values
   const getWavelengthDisplay = () => {
     const val = quantities.wavelength[wavelengthUnit];
     return formatSignificantDigits(val, precisionDigits);
@@ -212,41 +420,138 @@ export const OpticalConverter: React.FC = () => {
     return formatSignificantDigits(val, precisionDigits);
   };
 
+  // Get current displayed uncertainty values
+  const getWavelengthUncertaintyDisplay = () => {
+    if (energyUncertaintyJoules <= 0) return '';
+    const val = uncertainties.wavelength[wavelengthUnit];
+    return formatSignificantDigits(val, precisionDigits);
+  };
+
+  const getFrequencyUncertaintyDisplay = () => {
+    if (energyUncertaintyJoules <= 0) return '';
+    const val = uncertainties.frequency[freqUnit];
+    return formatSignificantDigits(val, precisionDigits);
+  };
+
+  const getAngularFreqUncertaintyDisplay = () => {
+    if (energyUncertaintyJoules <= 0) return '';
+    let val = uncertainties.angularFrequency.radPerSec;
+    if (angularFreqUnit === 'Mrad/s') val = uncertainties.angularFrequency.MradPerSec;
+    else if (angularFreqUnit === 'Grad/s') val = uncertainties.angularFrequency.GradPerSec;
+    return formatSignificantDigits(val, precisionDigits);
+  };
+
+  const getEnergyUncertaintyDisplay = () => {
+    if (energyUncertaintyJoules <= 0) return '';
+    const val = uncertainties.energy[energyUnit];
+    return formatSignificantDigits(val, precisionDigits);
+  };
+
+  const getWavenumberUncertaintyDisplay = () => {
+    if (energyUncertaintyJoules <= 0) return '';
+    const val = wavenumberUnit === 'm^-1' ? uncertainties.wavenumber.mInv : uncertainties.wavenumber.cmInv;
+    return formatSignificantDigits(val, precisionDigits);
+  };
+
+  const getTempUncertaintyDisplay = () => {
+    if (energyUncertaintyJoules <= 0) return '';
+    const val = uncertainties.temperature[tempUnit];
+    return formatSignificantDigits(val, precisionDigits);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
       <Card
         title="Optical & Energy Converter"
-        subtitle="Convert between photon wavelength, frequency, energy, wavenumber, and equivalent temperature."
         category="optical"
         icon={<Lightbulb size={20} />}
         actions={
-          <Button
-            size="sm"
-            variant="ghost"
-            category="optical"
-            icon={<RotateCcw size={14} />}
-            onClick={() => {
-              const prevE = energyJoules;
-              const resetE = energyFromWavelength(activeWavelengthNm * 1e-9);
-              recordAction({
-                description: resetLabel,
-                category: 'optical',
-                targetTab: 'optical',
-                undo: () => setEnergyJoules(prevE),
-                redo: () => setEnergyJoules(resetE)
-              });
-              setEnergyJoules(resetE);
-              setWavelengthUnit('nm');
-              setFreqUnit('THz');
-              setAngularFreqUnit('rad/s');
-              setEnergyUnit('eV');
-              setWavenumberUnit('cm^-1');
-              setTempUnit('K');
-              setActiveField(null);
-            }}
-          >
-            {resetLabel}
-          </Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <Button
+              size="sm"
+              variant={showUncertainties ? 'primary' : 'outline'}
+              category="optical"
+              aria-pressed={showUncertainties}
+              onClick={() => {
+                const next = !showUncertainties;
+                setShowUncertainties(next);
+                recordAction({
+                  description: `${next ? 'Enable' : 'Disable'} optical uncertainties`,
+                  category: 'optical',
+                  targetTab: 'optical',
+                  undo: () => setShowUncertainties(!next),
+                  redo: () => setShowUncertainties(next)
+                });
+              }}
+            >
+              <span className="font-mono" style={{ fontWeight: 'bold', marginRight: '4px' }}>±</span>
+              Uncertainties: {showUncertainties ? 'ON' : 'OFF'}
+            </Button>
+
+            {/* Single clean placement of relative uncertainty & ppm */}
+            {showUncertainties && energyUncertaintyJoules > 0 && energyJoules > 0 && (
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'var(--color-bg-input)',
+                  border: '1px solid var(--color-border-subtle)',
+                  fontSize: 'var(--font-size-xs)',
+                  color: 'var(--color-text-secondary)',
+                  lineHeight: 1
+                }}
+              >
+                <span style={{ color: 'var(--color-text-muted)' }}>Rel:</span>
+                <strong className="font-mono" style={{ color: 'var(--color-optical)' }}>
+                  ±{((energyUncertaintyJoules / energyJoules) * 100) < 0.01
+                    ? ((energyUncertaintyJoules / energyJoules) * 100).toPrecision(3)
+                    : ((energyUncertaintyJoules / energyJoules) * 100).toFixed(4)}%
+                </strong>
+                <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--font-size-2xs)' }}>
+                  ({((energyUncertaintyJoules / energyJoules) * 1e6).toFixed(1)} ppm)
+                </span>
+              </div>
+            )}
+
+            <Button
+              size="sm"
+              variant="ghost"
+              category="optical"
+              icon={<RotateCcw size={14} />}
+              onClick={() => {
+                const prevE = energyJoules;
+                const prevU = energyUncertaintyJoules;
+                const resetE = energyFromWavelength(activeWavelengthNm * 1e-9);
+                recordAction({
+                  description: resetLabel,
+                  category: 'optical',
+                  targetTab: 'optical',
+                  undo: () => {
+                    setEnergyJoules(prevE);
+                    setEnergyUncertaintyJoules(prevU);
+                  },
+                  redo: () => {
+                    setEnergyJoules(resetE);
+                    setEnergyUncertaintyJoules(0);
+                  }
+                });
+                setEnergyJoules(resetE);
+                setEnergyUncertaintyJoules(0);
+                setWavelengthUnit('nm');
+                setFreqUnit('THz');
+                setAngularFreqUnit('rad/s');
+                setEnergyUnit('eV');
+                setWavenumberUnit('cm^-1');
+                setTempUnit('K');
+                setActiveField(null);
+              }}
+            >
+              {resetLabel}
+            </Button>
+          </div>
         }
       >
         <div
@@ -275,6 +580,19 @@ export const OpticalConverter: React.FC = () => {
             }}
             onCommit={() => commitEnergy('Wavelength')}
             onChange={handleWavelengthChange}
+            showUncertainty={showUncertainties}
+            uncertaintyValue={getWavelengthUncertaintyDisplay()}
+            onUncertaintyChange={handleWavelengthUncertaintyChange}
+            onUncertaintyFocus={() => {
+              setActiveField('wavelength-unc');
+              focusEnergyUncertaintyRef.current = energyUncertaintyJoules;
+            }}
+            onUncertaintyBlur={() => {
+              recordHistory('Wavelength', getWavelengthDisplay(), wavelengthUnit);
+              commitEnergyUncertainty('Wavelength');
+            }}
+            onUncertaintyCommit={() => commitEnergyUncertainty('Wavelength')}
+            isUncertaintyActive={activeField === 'wavelength-unc'}
             unitOptions={[
               { value: 'nm', label: 'nm (nanometers)' },
               { value: 'um', label: 'µm (microns)' },
@@ -304,6 +622,19 @@ export const OpticalConverter: React.FC = () => {
             }}
             onCommit={() => commitEnergy('Frequency')}
             onChange={handleFrequencyChange}
+            showUncertainty={showUncertainties}
+            uncertaintyValue={getFrequencyUncertaintyDisplay()}
+            onUncertaintyChange={handleFrequencyUncertaintyChange}
+            onUncertaintyFocus={() => {
+              setActiveField('frequency-unc');
+              focusEnergyUncertaintyRef.current = energyUncertaintyJoules;
+            }}
+            onUncertaintyBlur={() => {
+              recordHistory('Frequency', getFrequencyDisplay(), freqUnit);
+              commitEnergyUncertainty('Frequency');
+            }}
+            onUncertaintyCommit={() => commitEnergyUncertainty('Frequency')}
+            isUncertaintyActive={activeField === 'frequency-unc'}
             unitOptions={[
               { value: 'THz', label: 'THz (terahertz)' },
               { value: 'GHz', label: 'GHz (gigahertz)' },
@@ -338,6 +669,19 @@ export const OpticalConverter: React.FC = () => {
             }}
             onCommit={() => commitEnergy('Angular Frequency')}
             onChange={handleAngularFreqChange}
+            showUncertainty={showUncertainties}
+            uncertaintyValue={getAngularFreqUncertaintyDisplay()}
+            onUncertaintyChange={handleAngularFreqUncertaintyChange}
+            onUncertaintyFocus={() => {
+              setActiveField('angularFreq-unc');
+              focusEnergyUncertaintyRef.current = energyUncertaintyJoules;
+            }}
+            onUncertaintyBlur={() => {
+              recordHistory('Angular Frequency', getAngularFreqDisplay(), angularFreqUnit);
+              commitEnergyUncertainty('Angular Frequency');
+            }}
+            onUncertaintyCommit={() => commitEnergyUncertainty('Angular Frequency')}
+            isUncertaintyActive={activeField === 'angularFreq-unc'}
             unitOptions={[
               { value: 'rad/s', label: 'rad/s (radians/sec)' },
               { value: 'Mrad/s', label: 'Mrad/s (megaradians/sec)' },
@@ -366,6 +710,19 @@ export const OpticalConverter: React.FC = () => {
             }}
             onCommit={() => commitEnergy('Photon Energy')}
             onChange={handleEnergyChange}
+            showUncertainty={showUncertainties}
+            uncertaintyValue={getEnergyUncertaintyDisplay()}
+            onUncertaintyChange={handleEnergyUncertaintyChange}
+            onUncertaintyFocus={() => {
+              setActiveField('energy-unc');
+              focusEnergyUncertaintyRef.current = energyUncertaintyJoules;
+            }}
+            onUncertaintyBlur={() => {
+              recordHistory('Photon Energy', getEnergyDisplay(), energyUnit);
+              commitEnergyUncertainty('Photon Energy');
+            }}
+            onUncertaintyCommit={() => commitEnergyUncertainty('Photon Energy')}
+            isUncertaintyActive={activeField === 'energy-unc'}
             unitOptions={[
               { value: 'eV', label: 'eV (electron-volts)' },
               { value: 'meV', label: 'meV (milli-eV)' },
@@ -396,6 +753,19 @@ export const OpticalConverter: React.FC = () => {
             }}
             onCommit={() => commitEnergy('Wavenumber')}
             onChange={handleWavenumberChange}
+            showUncertainty={showUncertainties}
+            uncertaintyValue={getWavenumberUncertaintyDisplay()}
+            onUncertaintyChange={handleWavenumberUncertaintyChange}
+            onUncertaintyFocus={() => {
+              setActiveField('wavenumber-unc');
+              focusEnergyUncertaintyRef.current = energyUncertaintyJoules;
+            }}
+            onUncertaintyBlur={() => {
+              recordHistory('Wavenumber', getWavenumberDisplay(), wavenumberUnit);
+              commitEnergyUncertainty('Wavenumber');
+            }}
+            onUncertaintyCommit={() => commitEnergyUncertainty('Wavenumber')}
+            isUncertaintyActive={activeField === 'wavenumber-unc'}
             unitOptions={[
               { value: 'cm^-1', label: 'cm⁻¹ (inverse cm)' },
               { value: 'm^-1', label: 'm⁻¹ (inverse meter)' }
@@ -423,6 +793,19 @@ export const OpticalConverter: React.FC = () => {
             }}
             onCommit={() => commitEnergy('Equivalent Temperature')}
             onChange={handleTempChange}
+            showUncertainty={showUncertainties}
+            uncertaintyValue={getTempUncertaintyDisplay()}
+            onUncertaintyChange={handleTempUncertaintyChange}
+            onUncertaintyFocus={() => {
+              setActiveField('temperature-unc');
+              focusEnergyUncertaintyRef.current = energyUncertaintyJoules;
+            }}
+            onUncertaintyBlur={() => {
+              recordHistory('Temperature', getTempDisplay(), tempUnit);
+              commitEnergyUncertainty('Temperature');
+            }}
+            onUncertaintyCommit={() => commitEnergyUncertainty('Temperature')}
+            isUncertaintyActive={activeField === 'temperature-unc'}
             unitOptions={[
               { value: 'K', label: 'K (Kelvin)' },
               { value: 'mK', label: 'mK (milli-Kelvin)' },

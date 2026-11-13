@@ -30,6 +30,9 @@ export const CODATA_2022 = {
   /** Boltzmann constant (exact) */
   kB: 1.380649e-23, // J / K
 
+  /** Avogadro constant (exact) */
+  NA: 6.02214076e23, // mol^-1
+
   /** Bohr magneton (e * hbar / (2 * m_e)) */
   muB: 9.2740100783e-24, // J / T
 
@@ -38,6 +41,15 @@ export const CODATA_2022 = {
 
   /** Bohr radius */
   a0: 5.29177210903e-11, // m
+
+  /** Rydberg constant */
+  Rinf: 10973731.568157, // m^-1
+
+  /** Fine-structure constant */
+  alpha: 7.2973525643e-3,
+
+  /** Inverse fine-structure constant */
+  invAlpha: 137.035999177,
 
   /** Electric permittivity of vacuum */
   epsilon0: 8.8541878128e-12, // F / m
@@ -151,5 +163,50 @@ export const CONSTANTS_LIST: PhysicalConstant[] = [
     isExact: false,
     latex: '\\mu_0 \\approx 1.256\\,637\\,062 \\times 10^{-6}\\text{ N/A}^2',
     description: 'Magnetic permeability of free space.'
+  },
+  {
+    symbol: 'R_∞',
+    name: 'Rydberg constant',
+    value: CODATA_2022.Rinf,
+    unit: 'm⁻¹',
+    isExact: false,
+    latex: 'R_\\infty = 10\\,973\\,731.568\\,157\\text{ m}^{-1}',
+    description: 'Fundamental spectroscopic constant relating atomic transition wavenumbers (109737.31568157 cm⁻¹).'
+  },
+  {
+    symbol: 'α',
+    name: 'Fine-structure constant',
+    value: CODATA_2022.alpha,
+    unit: 'dimensionless',
+    isExact: false,
+    latex: '\\alpha \\approx \\frac{1}{137.035\\,999\\,177}',
+    description: 'Characterizes the strength of the electromagnetic interaction between elementary charged particles.'
+  },
+  {
+    symbol: 'N_A',
+    name: 'Avogadro constant',
+    value: CODATA_2022.NA,
+    unit: 'mol⁻¹',
+    isExact: true,
+    latex: 'N_A = 6.022\\,140\\,76 \\times 10^{23}\\text{ mol}^{-1}',
+    description: 'Number of constituent particles in one mole of substance (exact SI definition).'
+  },
+  {
+    symbol: 'g_e',
+    name: 'Free electron Landé g-factor',
+    value: CODATA_2022.ge,
+    unit: 'dimensionless',
+    isExact: false,
+    latex: 'g_e = 2.002\\,319\\,304\\,362\\,56',
+    description: 'Magnetic moment of the free electron in Bohr magnetons (QED precision standard).'
+  },
+  {
+    symbol: 'E_h',
+    name: 'Hartree energy',
+    value: CODATA_2022.Eh,
+    unit: 'J',
+    isExact: false,
+    latex: 'E_h = 2 R_\\infty h c \\approx 4.359\\,744\\,722\\,2071 \\times 10^{-18}\\text{ J}',
+    description: 'Atomic unit of energy (27.211386245988 eV).'
   }
 ];

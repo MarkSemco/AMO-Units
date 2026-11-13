@@ -262,3 +262,19 @@ button:disabled {
   }
 }
 
+/* Prevent accidental text selection during active drag on interactive simulators */
+body.is-sim-dragging,
+body.is-sim-dragging * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+/* Simulator canvas containers and SVG interactive zones */
+.simulator-canvas,
+.simulator-interactive {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+

@@ -20,6 +20,10 @@ export const LMatchSchematic: React.FC<LMatchSchematicProps> = ({
 
   return (
     <div
+      className="simulator-canvas"
+      onMouseDown={e => {
+        if (e.button === 0) e.preventDefault();
+      }}
       style={{
         marginTop: '10px',
         padding: '10px 12px',
@@ -28,7 +32,9 @@ export const LMatchSchematic: React.FC<LMatchSchematicProps> = ({
         border: '1px solid var(--color-border-subtle)',
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center'
+        alignItems: 'center',
+        userSelect: 'none',
+        WebkitUserSelect: 'none'
       }}
     >
       <div

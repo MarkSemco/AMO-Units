@@ -178,7 +178,6 @@ export const ZeemanConverter: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
       <Card
         title="Magnetic Field & Zeeman Splitting"
-        subtitle="First-order Zeeman frequency shift Δν = (μ · g · Δm_F · B) / h."
         category="magnetic"
         icon={<Compass size={20} />}
         actions={

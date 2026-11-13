@@ -164,5 +164,68 @@ describe('SyncedInput Component', () => {
     fireEvent.keyDown(input, { key: 'ArrowDown' });
     expect(handleChange).toHaveBeenCalledWith('261.41');
   });
+
+  it('renders uncertainty input row when showUncertainty is true and responds to input', () => {
+    const handleUncertaintyChange = vi.fn();
+
+    render(
+      <SettingsProvider>
+        <SyncedInput
+          id="unc-test"
+          label="Wavelength"
+          value="261.5"
+          unit="nm"
+          category="optical"
+          onChange={vi.fn()}
+          showUncertainty={true}
+          uncertaintyValue="0.005"
+          onUncertaintyChange={handleUncertaintyChange}
+        />
+      </SettingsProvider>
+    );
+
+    expect(screen.getByText('± σ')).toBeInTheDocument();
+    const uncInput = screen.getByRole('textbox', { name: /Wavelength uncertainty in nm/i }) as HTMLInputElement;
+    expect(uncInput).toBeInTheDocument();
+    expect(uncInput.value).toBe('0.005');
+
+    fireEvent.change(uncInput, { target: { value: '0.008' } });
+    expect(handleUncertaintyChange).toHaveBeenCalledWith('0.008');
+
+    // No redundant 3rd GUM line
+    expect(screen.queryByText('GUM:')).not.toBeInTheDocument();
+  });
+
+  it('steps uncertainty digits using ArrowUp and ArrowDown in uncertainty input', () => {
+    const handleUncertaintyChange = vi.fn();
+
+    render(
+      <SettingsProvider>
+        <SyncedInput
+          id="unc-stepper-test"
+          label="Frequency"
+          value="384.23"
+          unit="THz"
+          category="optical"
+          onChange={vi.fn()}
+          showUncertainty={true}
+          uncertaintyValue="0.05"
+          onUncertaintyChange={handleUncertaintyChange}
+        />
+      </SettingsProvider>
+    );
+
+    const uncInput = screen.getByRole('textbox', { name: /Frequency uncertainty in THz/i }) as HTMLInputElement;
+
+    // Set cursor at pos 4 (after '5' in '0.05')
+    uncInput.setSelectionRange(4, 4);
+    fireEvent.keyDown(uncInput, { key: 'ArrowUp' });
+    expect(handleUncertaintyChange).toHaveBeenCalledWith('0.06');
+
+    // Stepping down from current draft (0.06) returns 0.05
+    uncInput.setSelectionRange(4, 4);
+    fireEvent.keyDown(uncInput, { key: 'ArrowDown' });
+    expect(handleUncertaintyChange).toHaveBeenCalledWith('0.05');
+  });
 });
 

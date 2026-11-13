@@ -139,7 +139,6 @@ export const PresetLibraryView: React.FC = () => {
       {/* Header and Filter Toolbar */}
       <Card
         title="Atomic & Molecular Transition Library"
-        subtitle="Transitions for alkali atoms, alkaline-earth elements, polar molecules, and custom presets."
         category="preset"
         icon={<Atom size={20} />}
         actions={

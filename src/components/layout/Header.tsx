@@ -3,11 +3,10 @@ import { Search, History, Undo2, Redo2 } from 'lucide-react';
 import { useSettings } from '../../context/SettingsContext';
 import { useUndoRedo } from '../../context/UndoRedoContext';
 import { TextScaleMenu } from './TextScaleMenu';
+import { SigFigsInput } from './SigFigsInput';
 
 export const Header: React.FC = () => {
   const {
-    precisionDigits,
-    setPrecisionDigits,
     setCommandPaletteOpen,
     setHistoryDrawerOpen
   } = useSettings();
@@ -158,41 +157,8 @@ export const Header: React.FC = () => {
           {/* UI Text Size Scaling Pill & Popover Menu */}
           <TextScaleMenu />
 
-          {/* Precision Selector */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '4px 8px',
-              backgroundColor: 'var(--color-bg-input)',
-              border: '1px solid var(--color-border-subtle)',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: 'var(--font-size-xs)',
-              color: 'var(--color-text-secondary)'
-            }}
-          >
-            <span className="header-label-hide" style={{ color: 'var(--color-text-muted)' }}>Sig Figs:</span>
-            <select
-              value={precisionDigits}
-              onChange={e => setPrecisionDigits(Number(e.target.value))}
-              aria-label="Significant digits precision"
-              className="font-mono"
-              style={{
-                fontSize: 'var(--font-size-xs)',
-                fontWeight: 'var(--font-weight-semibold)',
-                color: 'var(--color-text-primary)',
-                backgroundColor: 'transparent',
-                cursor: 'pointer'
-              }}
-            >
-              {[4, 5, 6, 7, 8, 9, 10].map(n => (
-                <option key={n} value={n} style={{ backgroundColor: '#131B2E', color: '#F8FAFC' }}>
-                  {n} digits
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Precision Selector (Text box with stepper chevrons and cursor-based keyboard stepping) */}
+          <SigFigsInput />
 
           {/* History Drawer Trigger */}
           <button

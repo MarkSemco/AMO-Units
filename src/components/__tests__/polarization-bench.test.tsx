@@ -205,7 +205,7 @@ describe('Laser Polarization Bench Integration', () => {
       </TestWrapper>
     );
 
-    expect(screen.getByText(/Polarization & Waveplate Beamline/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^Optical Beamline$/i })).toBeInTheDocument();
 
     // Simulate navigation to #laser
     act(() => {
@@ -366,8 +366,8 @@ describe('Laser Polarization Bench Integration', () => {
     fireEvent.click(addHwpItem);
     expect(screen.getAllByText(/Stage 1/i).length).toBeGreaterThanOrEqual(1);
 
-    // Click "Clear Beamline"
-    const clearBtn = screen.getByRole('button', { name: /Clear Beamline/i });
+    // Click "Clear"
+    const clearBtn = screen.getByRole('button', { name: /^Clear$/i });
     fireEvent.click(clearBtn);
 
     // Back to empty state
@@ -720,10 +720,10 @@ describe('Laser Polarization Bench Integration', () => {
     expect(e0yInput).toHaveValue('0.0000');
     expect(s0Input).toHaveValue('1.0000');
 
-    // Verify Clear Beamline also preserves/resets unit power 1.0 mW
+    // Verify Clear also preserves/resets unit power 1.0 mW
     fireEvent.change(s0Input, { target: { value: '4.0' } });
     expect(e0xInput).toHaveValue('2.0000');
-    const clearBtn = screen.getByRole('button', { name: /Clear Beamline/i });
+    const clearBtn = screen.getByRole('button', { name: /^Clear$/i });
     fireEvent.click(clearBtn);
     expect(e0xInput).toHaveValue('1.0000');
     expect(s0Input).toHaveValue('1.0000');
